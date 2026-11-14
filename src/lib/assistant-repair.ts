@@ -606,6 +606,33 @@ export function parsePortionGramsFromMessage(message: string): number | null {
   return null;
 }
 
+/** «0,5», «пол-литра», «полторашка» — только для напитка, в миллилитрах. */
+export function parseDrinkVolumeMl(message: string): number | null {
+  const text = message.trim().toLowerCase().replace(/ё/g, "е");
+  if (/полторашк/.test(text)) return 1500;
+  if (/пол[\s-]*литр|поллитр/.test(text)) return 500;
+  const stated = parsePortionGramsFromMessage(message);
+  if (stated != null) return stated;
+  const bare = /(?:^|[^\d])(\d+[.,]\d+)(?!\s*(?:%|г|гр|грамм|мл))/iu.exec(text);
+  if (!bare?.[1]) return null;
+  const n = Number(bare[1].replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0 || n >= 10) return null;
+  return Math.round(n * 1000);
+}
+
+function typicalPieceGrams(dishName: string): number | null {
+  const name = dishName.toLowerCase().replace(/ё/g, "е");
+  if (/пельмен/.test(name)) return 15;
+  if (/вареник/.test(name)) return 25;
+  if (/сырник/.test(name)) return 70;
+  if (/пицц/.test(name)) return 100;
+  if (/блин/.test(name)) return 50;
+  if (/яйц/.test(name)) return 55;
+  if (/банан/.test(name)) return 120;
+  if (/яблок/.test(name)) return 180;
+  return null;
+}
+
 /** Map genitive / colloquial drink phrases to a table-friendly query. */
 function drinkLookupQuery(message: string): string | null {
   const n = message.toLowerCase().replace(/ё/g, "е");
@@ -1154,7 +1181,7 @@ export function parsePieceCountFromMessage(text: string): number | null {
   // Count glued to a piece food: «4 варёных яйца», «2 банана».
   // «яйц» записан экранированием: буква «и» вместо «й» не ловит «яйца» после «съел».
   const beforeFood = new RegExp(
-    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+)?(?:\u044f\u0439\u0446\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*)`,
+    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+|куск\p{L}*\s+)?(?:\u044f\u0439\u0446\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*|пельмен\p{L}*|сырник\p{L}*|пицц\p{L}*|блин\p{L}*)`,
     "iu",
   ).exec(text);
   if (beforeFood?.[1]) {
@@ -1334,7 +1361,7 @@ export function messageLogsNewEatenFood(message: string): boolean {
     .replace(
       new RegExp(
         tokenStart +
-          String.raw`(?:грамм(?:а|ов)?|гр|г|мл|литр(?:а|ов|ы)?|л|шт(?:ук[аи])?)` +
+          String.raw`(?:грамм(?:а|ов)?|гр|г|мл|литр(?:а|ов|ы)?|л|шт(?:ук[аи])?|куск(?:а|ов|и|е)?)` +
           tokenEnd,
         "giu",
       ),
@@ -1380,6 +1407,8 @@ function foodLookupQueries(userMessage: string): string[] {
     )
     .replace(/(?:в|на|к|около)\s*\d{1,2}(?:\s*[:.]\s*\d{2})?(?=$|\s|[^\p{L}\p{N}])/giu, " ")
     .replace(/\b\d{1,2}:\d{2}\b/g, " ")
+    .replace(/(?:^|\s)\d+(?:[.,]\d+)?(?=$|\s)/g, " ")
+    .replace(/(?:^|\s)куск(?:а|ов|и|е)?(?=$|\s|[^\p{L}\p{N}])/giu, " ")
     .replace(/\s+/g, " ")
     .trim();
   const nominative = cleaned
@@ -1415,16 +1444,29 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
   if (!pack) return null;
 
   const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-  const grams = parsePortionGramsFromMessage(userMessage);
+  const explicitGrams = parsePortionGramsFromMessage(userMessage);
+  const drinkMl = explicitGrams == null && drinkQ ? parseDrinkVolumeMl(userMessage) : null;
+  const grams = explicitGrams ?? drinkMl;
   const pieces = grams == null ? parsePieceCountFromMessage(userMessage) : null;
-  const perPiece = pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
-  const scale = grams != null ? grams / baseGrams : perPiece && pieces != null ? pieces : 1;
+  const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
+  const perPiece =
+    pieceWeight == null && pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
+  const portion =
+    grams != null
+      ? grams
+      : pieceWeight != null && pieces != null
+        ? pieceWeight * pieces
+        : perPiece && pieces != null
+          ? Math.round(baseGrams * pieces)
+          : baseGrams;
+  const scale = portion / baseGrams;
   const num = (v?: number) =>
     v == null || !Number.isFinite(v) ? undefined : Math.round(v * scale * 10) / 10;
   const unit = drinkQ || /мл|литр|\bл\b/i.test(userMessage) ? "мл" : "г";
-  let name = pack.dishName;
-  if (grams != null && grams !== baseGrams) name = `${pack.dishName} (${grams} ${unit})`;
-  else if (perPiece && pieces != null && pieces > 1) name = `${pack.dishName} (${pieces} шт)`;
+  const name =
+    pieces != null && pieces > 1
+      ? `${pack.dishName} (${pieces} шт, ${portion} ${unit})`
+      : `${pack.dishName} (${portion} ${unit})`;
   const { note, targetDate } = mealMetaFromMessage(userMessage);
 
   return {
@@ -1437,6 +1479,8 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
         protein: num(pack.protein),
         fat: num(pack.fat),
         carbs: num(pack.carbs),
+        grams: portion,
+        unit,
         nutritionBasis: "estimate",
         per100: referencePer100(pack),
         note,
@@ -1836,6 +1880,29 @@ function applyReplyPortionIfPlausible(
     replyGrams != null &&
     (dense || pieceDensity <= LEAN_FOOD_DENSITY_CAP) &&
     (refPer100 <= 0 || !nutritionFiguresDiverge(pieceDensity, refPer100));
+
+  if (
+    portionKcal != null &&
+    replyGrams == null &&
+    meal.kcal != null &&
+    meal.kcal > 0 &&
+    !nutritionFiguresDiverge(portionKcal, meal.kcal)
+  ) {
+    const typical = meal.grams && meal.grams > 0 ? meal.grams : typicalPortionGrams(meal);
+    return {
+      ...tableActions,
+      meals: [
+        {
+          ...meal,
+          kcal: portionKcal,
+          ...(typical != null
+            ? { grams: typical, name: `${baseName} (${typical} г)`.slice(0, 120) }
+            : {}),
+          note: meal.note,
+        },
+      ],
+    };
+  }
 
   if (piecePlausible && portionKcal != null && replyGrams != null) {
     const statedMacros = macrosFromReply(assistantReply);

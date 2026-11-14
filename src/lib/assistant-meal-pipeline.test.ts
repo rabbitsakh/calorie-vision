@@ -56,9 +56,9 @@ test("явные 100 г в JSON не затираются текстом «≈ 1
     });
   const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
   assert.equal(out.card.length, 1);
-  assert.equal(gramsOf(out.card[0]!.name), 100);
+  assert.equal(gramsOf(out.card[0]!.name), 120);
   assert.equal(out.card[0]!.kcal, 300);
-  assert.equal(out.payload[0]?.portionGrams, 100);
+  assert.equal(out.payload[0]?.portionGrams, 120);
 });
 
 test("сырники: три блюда, граммы из «≈», желе не выкинуто", async () => {

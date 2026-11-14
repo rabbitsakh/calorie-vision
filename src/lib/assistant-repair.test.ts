@@ -21,6 +21,7 @@ import {
   heuristicRepairFromProseKcal,
   replyEstimatesBareDish,
   parsePortionGramsFromMessage,
+  parseDrinkVolumeMl,
   parseStructuredMealsFromText,
   preferMultiDishActions,
   preferSlotEditActions,
@@ -134,6 +135,70 @@ test("parsePortionGramsFromMessage liters and grams", () => {
   assert.equal(parsePortionGramsFromMessage("Я выпил 3 литра светлого пива"), 3000);
   assert.equal(parsePortionGramsFromMessage("500 мл колы"), 500);
   assert.equal(parsePortionGramsFromMessage("нога индейки 300гр"), 300);
+});
+
+test("напитки и штуки: пиво 0,5 и 4 л, пельмени, яйца", () => {
+  assert.equal(parseDrinkVolumeMl("пиво 0,5"), 500);
+  assert.equal(parseDrinkVolumeMl("пиво 0.5 л"), 500);
+  assert.equal(parseDrinkVolumeMl("пол-литра пива"), 500);
+  assert.equal(parseDrinkVolumeMl("полторашка пива"), 1500);
+  assert.equal(parsePortionGramsFromMessage("пиво 4 л"), 4000);
+
+  const half = heuristicRepairWriteActions("выпил пиво 0,5");
+  assert.equal(half?.meals?.[0]?.grams, 500);
+  assert.equal(half?.meals?.[0]?.unit, "мл");
+  assert.ok((half?.meals?.[0]?.kcal ?? 0) > 150);
+
+  const four = heuristicRepairWriteActions("выпил пиво 4 л");
+  assert.equal(four?.meals?.[0]?.grams, 4000);
+  assert.equal(four?.meals?.[0]?.unit, "мл");
+
+  const dumplings = heuristicRepairWriteActions("съел пельмени 15 шт");
+  assert.equal(dumplings?.meals?.[0]?.grams, 225);
+  assert.match(dumplings?.meals?.[0]?.name ?? "", /225/);
+
+  const eggs = heuristicRepairWriteActions("съел 2 яйца");
+  assert.equal(eggs?.meals?.[0]?.grams, 110);
+
+  const syrniki = heuristicRepairWriteActions("съел 3 сырника");
+  assert.equal(syrniki?.meals?.[0]?.grams, 210);
+
+  const pizza = heuristicRepairWriteActions("съел 2 куска пиццы");
+  assert.equal(pizza?.meals?.[0]?.grams, 200);
+
+  const buckwheat = heuristicRepairWriteActions("съел гречку 200 г");
+  assert.equal(buckwheat?.meals?.[0]?.grams, 200);
+  assert.equal(buckwheat?.meals?.[0]?.unit, "г");
+
+  const coffee = heuristicRepairWriteActions("выпил кофе");
+  assert.match(coffee?.meals?.[0]?.name ?? "", /чёрн/i);
+  assert.equal(coffee?.meals?.[0]?.grams, 200);
+
+  const milkCoffee = heuristicRepairWriteActions("выпил кофе с молоком");
+  assert.match(milkCoffee?.meals?.[0]?.name ?? "", /молоком/i);
+
+  const tvorog = heuristicRepairWriteActions("съел творог 5% 180 г");
+  assert.equal(tvorog?.meals?.[0]?.grams, 180);
+  assert.ok((tvorog?.meals?.[0]?.kcal ?? 0) > 180);
+
+  const protein = heuristicRepairWriteActions("съел протеин 30 г");
+  assert.equal(protein?.meals?.[0]?.grams, 30);
+  assert.ok((protein?.meals?.[0]?.protein ?? 0) < 30);
+
+  const shawarma = heuristicRepairWriteActions("съел шаурму");
+  assert.match(shawarma?.meals?.[0]?.name ?? "", /Шаурма/);
+  assert.equal(shawarma?.meals?.[0]?.grams, 280);
+});
+
+test("правдоподобные ккал ответа не затираются порцией справочника", async () => {
+  const actions = await repairAssistantWriteActions({
+    userMessage: "добавь окорочок",
+    assistantReply: "Окорочок гриль — примерно 450 ккал.",
+    today: "2026-11-04",
+    date: "2026-11-04",
+    allowRepairLlm: false,
+  });
+  assert.equal(actions?.meals?.[0]?.kcal, 450);
 });
 
 test("heuristicRepairWriteActions builds beer meal for liters", () => {

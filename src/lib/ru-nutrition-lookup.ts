@@ -200,7 +200,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["пельмени", "пельмени домашние"], dishName: "Пельмени", calories: 520, protein: 22, fat: 24, carbs: 52, portionGrams: 250 },
   { keys: ["вареники", "вареники с творогом"], dishName: "Вареники с творогом", calories: 380, protein: 14, fat: 10, carbs: 58, portionGrams: 200 },
   { keys: ["блины", "блин", "блины с творогом"], dishName: "Блины", calories: 320, protein: 10, fat: 12, carbs: 42, portionGrams: 150 },
-  { keys: ["сырники"], dishName: "Сырники", calories: 340, protein: 18, fat: 14, carbs: 36, portionGrams: 150 },
+  { keys: ["сырники", "сырник", "сырника"], dishName: "Сырники", calories: 340, protein: 18, fat: 14, carbs: 36, portionGrams: 150 },
   { keys: ["хлеб", "хлеб белый", "батон"], dishName: "Хлеб белый", calories: 160, protein: 5, fat: 1, carbs: 32, portionGrams: 60 },
   { keys: ["бутерброд", "бутер"], dishName: "Бутерброд с колбасой", calories: 280, protein: 12, fat: 14, carbs: 26, portionGrams: 100 },
   { keys: ["плов", "плов с говядиной"], dishName: "Плов с говядиной", calories: 560, protein: 26, fat: 22, carbs: 58, portionGrams: 300 },
@@ -211,7 +211,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["шашлык", "шашлык из свинины"], dishName: "Шашлык из свинины", calories: 450, protein: 32, fat: 32, carbs: 2, portionGrams: 200 },
   { keys: ["шаурма"], dishName: "Шаурма", calories: 520, protein: 22, fat: 24, carbs: 52, portionGrams: 280 },
   { keys: ["бургер", "гамбургер", "чизбургер"], dishName: "Бургер", calories: 540, protein: 26, fat: 28, carbs: 44, portionGrams: 220 },
-  { keys: ["пицца", "пizza", "пицца маргарита"], dishName: "Пицца", calories: 680, protein: 28, fat: 26, carbs: 78, portionGrams: 250 },
+  { keys: ["пицца", "пиццы", "пizza", "пицца маргарита"], dishName: "Пицца", calories: 680, protein: 28, fat: 26, carbs: 78, portionGrams: 250 },
   { keys: ["суши", "ролл"], dishName: "Ролл", calories: 320, protein: 14, fat: 12, carbs: 38, portionGrams: 120 },
   {
     keys: ["филадельфия", "ролл филадельфия", "филадельфия ролл"],

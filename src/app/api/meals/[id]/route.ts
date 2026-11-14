@@ -6,6 +6,7 @@ import { decodeHtmlEntities } from "@/lib/html-text";
 import { parseEatenAt } from "@/lib/eaten-at";
 import { prisma } from "@/lib/prisma";
 import { grantGymChestForDate } from "@/lib/gym-reward-grant";
+import { reconcileCalorieEdit } from "@/lib/macro-scale";
 
 export async function PATCH(
   request: NextRequest,
@@ -63,17 +64,66 @@ export async function PATCH(
       date = parsed;
     }
 
+    const existing = await prisma.mealEntry.findFirst({
+      where: { id, userId: session.user.id },
+      select: {
+        dishName: true,
+        calories: true,
+        protein: true,
+        fat: true,
+        carbs: true,
+        fiber: true,
+        sugar: true,
+        portionGrams: true,
+      },
+    });
+    if (!existing) {
+      const miss = notFoundMealResponse();
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
+    }
+
+    const nextCalories =
+      body.calories !== undefined ? Math.round(body.calories) : existing.calories;
+    const macrosSent =
+      body.protein !== undefined || body.fat !== undefined || body.carbs !== undefined;
+    const reconciled = reconcileCalorieEdit({
+      name: body.dishName?.trim() || existing.dishName,
+      previousKcal: existing.calories,
+      nextKcal: nextCalories,
+      stored: {
+        protein: existing.protein,
+        fat: existing.fat,
+        carbs: existing.carbs,
+        fiber: existing.fiber,
+        sugar: existing.sugar,
+      },
+      sent: macrosSent
+        ? {
+            protein: body.protein !== undefined ? body.protein : existing.protein,
+            fat: body.fat !== undefined ? body.fat : existing.fat,
+            carbs: body.carbs !== undefined ? body.carbs : existing.carbs,
+          }
+        : null,
+      portionGrams: body.portionGrams !== undefined ? body.portionGrams : existing.portionGrams,
+    });
+
     // Scope by session.user.id — foreign ids update 0 rows → same 404 as missing (no IDOR leak).
     const updated = await prisma.mealEntry.updateMany({
       where: { id, userId: session.user.id },
       data: {
         ...(body.dishName ? { dishName: decodeHtmlEntities(body.dishName.trim()) } : {}),
-        ...(body.calories !== undefined ? { calories: Math.round(body.calories) } : {}),
-        ...(body.protein !== undefined ? { protein: body.protein } : {}),
-        ...(body.fat !== undefined ? { fat: body.fat } : {}),
-        ...(body.carbs !== undefined ? { carbs: body.carbs } : {}),
-        ...(body.fiber !== undefined ? { fiber: body.fiber } : {}),
-        ...(body.sugar !== undefined ? { sugar: body.sugar } : {}),
+        ...(body.calories !== undefined ? { calories: nextCalories } : {}),
+        ...(body.calories !== undefined || macrosSent
+          ? {
+              protein: reconciled.macros.protein,
+              fat: reconciled.macros.fat,
+              carbs: reconciled.macros.carbs,
+              ...(reconciled.macros.fiber !== undefined ? { fiber: reconciled.macros.fiber } : {}),
+              ...(reconciled.macros.sugar !== undefined ? { sugar: reconciled.macros.sugar } : {}),
+            }
+          : {}),
+        ...(body.calories === undefined && body.fiber !== undefined ? { fiber: body.fiber } : {}),
+        ...(body.calories === undefined && body.sugar !== undefined ? { sugar: body.sugar } : {}),
         ...(body.portionGrams !== undefined ? { portionGrams: body.portionGrams } : {}),
         ...(body.brand !== undefined
           ? { brand: body.brand?.trim().slice(0, 80) || null }
@@ -98,7 +148,10 @@ export async function PATCH(
     });
     if (meal) await grantGymChestForDate(session.user.id, meal.date);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      ...(reconciled.warning ? { nutritionWarning: reconciled.warning } : {}),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

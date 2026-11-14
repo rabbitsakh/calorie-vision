@@ -356,6 +356,11 @@ export function sanitizeAssistantMealName(name: string): string {
     if (next === s) break;
     s = next;
   }
+  s = s
+    .replace(new RegExp(String.raw`\s*:\s*(?:примерно|около|где-то)${TOKEN_END}`, "giu"), "")
+    .replace(new RegExp(String.raw`\s*[—–-]\s*(?:примерно|около)${TOKEN_END}`, "giu"), "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   return s.slice(0, 120);
 }
 
