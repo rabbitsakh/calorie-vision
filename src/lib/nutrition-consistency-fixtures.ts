@@ -8,7 +8,13 @@ export type NutritionConsistencyFixture = {
   /** Текст ответа модели, включая markdown-ограду если модель её добавила. */
   rawModelText: string;
   expectIssues: Array<
-    "macro-energy" | "portion-bounds" | "density" | "items-sum" | "alcohol-gap" | "per100-basis"
+    | "macro-energy"
+    | "portion-bounds"
+    | "density"
+    | "items-sum"
+    | "alcohol-gap"
+    | "per100-basis"
+    | "macro-mass"
   >;
   expectCalories?: number;
   expectConfidenceAtMost?: number;

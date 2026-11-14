@@ -249,6 +249,7 @@ function SimpleFoodConfirm({
                           [key]: value != null && Number.isFinite(value) ? value : null,
                           unparsed: false,
                           nutritionBasis: undefined,
+                          nutritionWarning: undefined,
                           per100: null,
                         });
                       }}
@@ -274,7 +275,12 @@ function SimpleFoodConfirm({
               {dish.unparsed && dish.kcal == null && dish.nutritionBasis !== "unknown" ? (
                 <p className="mt-1 text-[10px] font-semibold text-[var(--muted)]">не разобрано</p>
               ) : null}
-              {energy ? <p className="mt-1 text-[10px] font-semibold text-amber-800">{energy}</p> : null}
+              {dish.nutritionWarning ? (
+                <p className="mt-1 text-[10px] font-semibold text-amber-800">{dish.nutritionWarning}</p>
+              ) : null}
+              {energy && !dish.nutritionWarning ? (
+                <p className="mt-1 text-[10px] font-semibold text-amber-800">{energy}</p>
+              ) : null}
               {rows.length > 1 ? (
                 <button
                   type="button"

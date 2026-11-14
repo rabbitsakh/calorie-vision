@@ -83,8 +83,10 @@ test("enrichAlternativesFromRuTable maps milk alt without coffee latte bleed", (
     ),
   );
   const alt = enriched.alternatives?.[0];
-  assert.equal(alt?.protein, 3);
-  assert.notEqual(alt?.protein, 6);
+  // Стакан 2,5% на 120 ккал из строки 130 ккал / Б7 Ж6,3 У11,8, не латте (Б6 Ж5 У12).
+  assert.equal(alt?.protein, 6.5);
+  assert.equal(alt?.fat, 5.8);
+  assert.notEqual(alt?.carbs, 12);
 });
 
 test("pipeline/combine + complete vision on enriched plate item", () => {

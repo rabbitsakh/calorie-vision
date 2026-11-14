@@ -53,6 +53,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["картофель", "картофельное пюре", "пюре"], dishName: "Картофельное пюре", calories: 240, protein: 5, fat: 8, carbs: 36, portionGrams: 200 },
   { keys: ["котлета", "котлета куриная", "куриная котлета"], dishName: "Котлета куриная", calories: 280, protein: 22, fat: 16, carbs: 12, portionGrams: 120 },
   { keys: ["куриная грудка", "грудка куриная", "куриное филе"], dishName: "Куриная грудка", calories: 248, protein: 46, fat: 5, carbs: 0, portionGrams: 150 },
+  { keys: ["курица", "курица запеченная", "курица жареная", "жареная курица"], dishName: "Курица", calories: 330, protein: 42, fat: 16, carbs: 0, portionGrams: 200 },
   // Окорочок/бедро гриль, жареное, запечённое. Числа — на типовую штуку ~200 г.
   // С кожей ~235 ккал/100 г (Б 22, Ж 15, У 0).
   {
@@ -187,9 +188,9 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     ],
     dishName: "Творог обезжиренный",
     calories: 110,
-    protein: 33,
+    protein: 25,
     fat: 0.5,
-    carbs: 5,
+    carbs: 3,
     portionGrams: 150,
   },
   { keys: ["салат", "салат овощной", "овощной салат"], dishName: "Салат овощной", calories: 90, protein: 2, fat: 7, carbs: 4, fiber: 2, portionGrams: 150 },
@@ -211,16 +212,70 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["шаурма"], dishName: "Шаурма", calories: 520, protein: 22, fat: 24, carbs: 52, portionGrams: 280 },
   { keys: ["бургер", "гамбургер", "чизбургер"], dishName: "Бургер", calories: 540, protein: 26, fat: 28, carbs: 44, portionGrams: 220 },
   { keys: ["пицца", "пizza", "пицца маргарита"], dishName: "Пицца", calories: 680, protein: 28, fat: 26, carbs: 78, portionGrams: 250 },
-  { keys: ["суши", "ролл", "филадельфия"], dishName: "Ролл Филадельфия", calories: 320, protein: 14, fat: 12, carbs: 38, portionGrams: 120 },
+  { keys: ["суши", "ролл"], dishName: "Ролл", calories: 320, protein: 14, fat: 12, carbs: 38, portionGrams: 120 },
+  {
+    keys: ["филадельфия", "ролл филадельфия", "филадельфия ролл"],
+    dishName: "Ролл Филадельфия",
+    calories: 210,
+    protein: 10,
+    fat: 8,
+    carbs: 24,
+    portionGrams: 120,
+  },
+  {
+    keys: ["филадельфия 100 г", "филадельфия 100г", "ролл филадельфия 100 г"],
+    dishName: "Ролл Филадельфия 100 г",
+    calories: 175,
+    protein: 8,
+    fat: 7,
+    carbs: 20,
+    portionGrams: 100,
+  },
+  {
+    keys: ["филадельфия шт", "филадельфия 1 шт", "ролл филадельфия шт", "филадельфия штука"],
+    dishName: "Ролл Филадельфия 1 шт",
+    calories: 60,
+    protein: 3,
+    fat: 2.5,
+    carbs: 7,
+    portionGrams: 35,
+  },
+  {
+    keys: ["калифорния", "ролл калифорния", "калифорния ролл"],
+    dishName: "Ролл Калифорния",
+    calories: 168,
+    protein: 6,
+    fat: 4,
+    carbs: 26,
+    portionGrams: 120,
+  },
+  {
+    keys: ["калифорния 100 г", "калифорния 100г", "ролл калифорния 100 г"],
+    dishName: "Ролл Калифорния 100 г",
+    calories: 140,
+    protein: 5,
+    fat: 3,
+    carbs: 22,
+    portionGrams: 100,
+  },
+  {
+    keys: ["калифорния шт", "калифорния 1 шт", "ролл калифорния шт", "калифорния штука"],
+    dishName: "Ролл Калифорния 1 шт",
+    calories: 35,
+    protein: 1.3,
+    fat: 0.8,
+    carbs: 5.5,
+    portionGrams: 25,
+  },
   { keys: ["компот"], dishName: "Компот", calories: 80, protein: 0, fat: 0, carbs: 20, sugar: 18, portionGrams: 250 },
   {
     keys: ["молоко", "молоко 2.5%", "молоко 2,5%", "молоко ультрапастеризованное"],
     dishName: "Молоко 2,5%",
-    calories: 120,
-    protein: 3,
-    fat: 2.5,
-    carbs: 5,
-    sugar: 5,
+    calories: 130,
+    protein: 7,
+    fat: 6.3,
+    carbs: 11.8,
+    sugar: 11.8,
     portionGrams: 250,
   },
   {
@@ -251,9 +306,67 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     sugar: 12,
     portionGrams: 250,
   },
-  { keys: ["кофе", "кофе с молоком", "латte", "латте"], dishName: "Кофе латте", calories: 120, protein: 6, fat: 5, carbs: 12, sugar: 10, portionGrams: 250 },
+  {
+    keys: ["эспрессо", "espresso"],
+    dishName: "Эспрессо",
+    calories: 2,
+    protein: 0.1,
+    fat: 0,
+    carbs: 0.4,
+    portionGrams: 30,
+  },
+  {
+    keys: ["кофе", "черный кофе", "чёрный кофе", "кофе черный", "кофе чёрный", "американо", "americano"],
+    dishName: "Кофе чёрный",
+    calories: 4,
+    protein: 0.3,
+    fat: 0,
+    carbs: 0.7,
+    portionGrams: 200,
+  },
+  {
+    keys: ["капучино", "cappuccino"],
+    dishName: "Капучино",
+    calories: 80,
+    protein: 4,
+    fat: 4,
+    carbs: 6,
+    sugar: 6,
+    portionGrams: 200,
+  },
+  {
+    keys: ["латте", "latte", "кофе латте"],
+    dishName: "Кофе латте",
+    calories: 120,
+    protein: 6,
+    fat: 5,
+    carbs: 12,
+    sugar: 10,
+    portionGrams: 250,
+  },
+  {
+    keys: ["кофе с молоком", "кофе молоко"],
+    dishName: "Кофе с молоком",
+    calories: 60,
+    protein: 3,
+    fat: 2.5,
+    carbs: 5,
+    sugar: 5,
+    portionGrams: 200,
+  },
   { keys: ["чай", "чай с сахаром"], dishName: "Чай с сахаром", calories: 40, protein: 0, fat: 0, carbs: 10, sugar: 10, portionGrams: 250 },
   { keys: ["квас"], dishName: "Квас", calories: 90, protein: 0, fat: 0, carbs: 22, sugar: 18, portionGrams: 330 },
+  { keys: ["кола", "coca-cola", "кока-кола", "пепси", "pepsi"], dishName: "Кола", calories: 139, protein: 0, fat: 0, carbs: 35, sugar: 35, portionGrams: 330 },
+  {
+    keys: ["кола без сахара", "кола зеро", "cola zero", "кока-кола зеро", "пепси макс", "кола zero"],
+    dishName: "Кола без сахара",
+    calories: 2,
+    protein: 0,
+    fat: 0,
+    carbs: 0.5,
+    portionGrams: 330,
+  },
+  { keys: ["энергетик", "energy drink", "ред булл", "red bull"], dishName: "Энергетик", calories: 113, protein: 0, fat: 0, carbs: 28, sugar: 27, portionGrams: 250 },
   { keys: ["сок", "сок яблочный"], dishName: "Сок яблочный", calories: 110, protein: 0, fat: 0, carbs: 26, sugar: 24, portionGrams: 250 },
   { keys: ["кефир", "кефир 2,5%", "кефир 2.5%"], dishName: "Кефир 2,5%", calories: 120, protein: 6, fat: 5, carbs: 9, portionGrams: 250 },
   {
@@ -317,10 +430,10 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   {
     keys: ["сметана 10%", "сметана обезжиренная"],
     dishName: "Сметана 10%",
-    calories: 50,
-    protein: 1,
+    calories: 35,
+    protein: 0.8,
     fat: 3,
-    carbs: 2,
+    carbs: 1.1,
     portionGrams: 30,
   },
   {
@@ -332,7 +445,19 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     carbs: 2,
     portionGrams: 30,
   },
-  { keys: ["сыр", "сыр твёрдый"], dishName: "Сыр твёрдый", calories: 350, protein: 24, fat: 28, carbs: 0, portionGrams: 50 },
+  { keys: ["сыр", "сыр твёрдый"], dishName: "Сыр твёрдый", calories: 175, protein: 12, fat: 14, carbs: 0, portionGrams: 50 },
+  { keys: ["сало", "свиное сало", "шпик"], dishName: "Сало", calories: 230, protein: 0.5, fat: 25, carbs: 0, portionGrams: 30 },
+  { keys: ["орехи", "орех"], dishName: "Орехи", calories: 190, protein: 4.5, fat: 18, carbs: 4, portionGrams: 30 },
+  { keys: ["грецкий орех", "грецкие орехи", "грецкий"], dishName: "Грецкий орех", calories: 196, protein: 4.5, fat: 20, carbs: 4, portionGrams: 30 },
+  { keys: ["миндаль"], dishName: "Миндаль", calories: 174, protein: 6, fat: 15, carbs: 6, portionGrams: 30 },
+  { keys: ["фундук"], dishName: "Фундук", calories: 188, protein: 4.5, fat: 18, carbs: 5, portionGrams: 30 },
+  { keys: ["кешью"], dishName: "Кешью", calories: 166, protein: 5, fat: 13, carbs: 9, portionGrams: 30 },
+  { keys: ["арахис"], dishName: "Арахис", calories: 170, protein: 8, fat: 14, carbs: 5, portionGrams: 30 },
+  { keys: ["семечки", "семечек", "семена подсолнечника", "подсолнечные семечки"], dishName: "Семечки", calories: 175, protein: 6, fat: 15, carbs: 6, portionGrams: 30 },
+  { keys: ["шоколад", "шоколад молочный", "молочный шоколад"], dishName: "Шоколад молочный", calories: 134, protein: 1.8, fat: 7.5, carbs: 15, portionGrams: 25 },
+  { keys: ["шоколад горький", "горький шоколад", "темный шоколад", "тёмный шоколад"], dishName: "Шоколад горький", calories: 150, protein: 2, fat: 10.5, carbs: 11, portionGrams: 25 },
+  { keys: ["хлебцы", "хлебец", "ржаные хлебцы"], dishName: "Хлебцы", calories: 93, protein: 3, fat: 0.6, carbs: 18, portionGrams: 30 },
+  { keys: ["халва", "халва подсолнечная"], dishName: "Халва", calories: 260, protein: 6, fat: 15, carbs: 27, portionGrams: 50 },
   { keys: ["колбаса", "колбаса докторская"], dishName: "Колбаса", calories: 280, protein: 12, fat: 24, carbs: 2, portionGrams: 100 },
   { keys: ["ветчина"], dishName: "Ветчина", calories: 180, protein: 18, fat: 10, carbs: 2, portionGrams: 80 },
   { keys: ["икра", "красная икра"], dishName: "Красная икра", calories: 120, protein: 12, fat: 8, carbs: 1, portionGrams: 30 },
@@ -747,10 +872,10 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
       "творог простоквашино 0,5%",
     ],
     dishName: "Творог Простоквашино обезжиренный",
-    calories: 120,
-    protein: 32,
-    fat: 0.9,
-    carbs: 5,
+    calories: 114,
+    protein: 26,
+    fat: 0.8,
+    carbs: 2.4,
     portionGrams: 160,
     brand: "Простоквашино",
   },
@@ -919,6 +1044,28 @@ function tokenizeRuLookupKey(name: string): string[] {
   return normalizeRuLookupKey(name).split(/[\s-]+/).filter(Boolean);
 }
 
+/** «тарелку борща» — посуда, не часть блюда. */
+const CONTAINER_TOKEN_RE =
+  /^(?:тарелк\p{L}*|порци\p{L}*|миск\p{L}*|стакан\p{L}*|чашк\p{L}*|чашечк\p{L}*|блюдц\p{L}*)$/u;
+
+/**
+ * Винительный -у/-ю → -а/-я, затем одна гласная с конца.
+ * «гречку» и «гречка» сходятся в «гречк», «борща» и «борщ» — в «борщ».
+ */
+function foldLookupToken(token: string): string {
+  let next = token;
+  if (next.length >= 4 && next.endsWith("у")) next = next.slice(0, -1) + "а";
+  else if (next.length >= 4 && next.endsWith("ю")) next = next.slice(0, -1) + "я";
+  if (next.length >= 4 && /[ая]$/.test(next)) next = next.slice(0, -1);
+  return next;
+}
+
+function lookupTokens(name: string, dropContainers: boolean): string[] {
+  return tokenizeRuLookupKey(name)
+    .filter((token) => !dropContainers || !CONTAINER_TOKEN_RE.test(token))
+    .map(foldLookupToken);
+}
+
 const LOOKUP_STOPWORDS = new Set([
   "с",
   "и",
@@ -995,8 +1142,8 @@ function matchScore(query: string, key: string): number {
     return 100;
   }
 
-  const qTokens = tokenizeRuLookupKey(query);
-  const kTokens = tokenizeRuLookupKey(key);
+  const qTokens = lookupTokens(query, true);
+  const kTokens = lookupTokens(key, false);
   if (qTokens.length === 0 || kTokens.length === 0) {
     return 0;
   }

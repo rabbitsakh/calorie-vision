@@ -226,5 +226,11 @@ test("buildAssistantSystemPrompt includes mode + fence + prefs", () => {
   assert.match(prompt, /Не пиши «кидаю в план»/);
   assert.doesNotMatch(prompt, /«Ок, кидаю в план»/);
   assert.match(prompt, /Выпил 70г протеина на перекус в 10:30/);
+  assert.match(prompt, /85–90% белка/);
+  assert.match(prompt, /"protein":51/);
+  assert.doesNotMatch(prompt, /"protein":60/);
+  assert.match(prompt, /"kcal":1290/);
+  assert.match(prompt, /"carbs":105/);
+  assert.doesNotMatch(prompt, /Пиво светлое \(3000 мл\)","kcal":900/);
   assert.match(prompt, /не patchMeals/);
 });

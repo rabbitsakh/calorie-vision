@@ -638,6 +638,23 @@ test("lookup: dry breakfast cereals by grams", () => {
   assert.equal(lookupRuNutritionTable("мюсли")?.dishName, "Мюсли");
 });
 
+test("repair prompt asks for ~1300 kcal of light beer, not 900–1300", async () => {
+  let system = "";
+  await repairAssistantWriteActions({
+    userMessage: "запиши кварцевый мусс zzq",
+    assistantReply: "Хорошо.",
+    today: "2026-11-04",
+    date: "2026-11-04",
+    allowRepairLlm: true,
+    completeRepairChat: async (messages) => {
+      system = messages[0]?.content ?? "";
+      return '{"apply":false}';
+    },
+  });
+  assert.match(system, /~1300 ккал/);
+  assert.doesNotMatch(system, /900–1300|900-1300/);
+});
+
 test("bare dish + reply that promises a card → repair builds the meal from the draft", async () => {
   const reply =
     "Лакомство принято:\n\n- Мороженое (стандартная порция около 100 г): примерно 200 ккал, белки 4 г, жиры 10 г, углеводы 20 г\n\n✅ Сохраняйте в дневник, подтверждая ниже.";

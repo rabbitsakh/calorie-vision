@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { alcoholEnergyKcal, atwaterKcal } from "./nutrition-consistency.ts";
 import {
   dishLooksLikeAlcohol,
   listRuNutritionByBrand,
   lookupRuNutritionBranded,
   lookupRuNutritionTable,
+  RU_NUTRITION_ENTRIES,
   scaleRuNutritionToGrams,
 } from "./ru-nutrition-lookup.ts";
 
@@ -186,7 +188,9 @@ test("generic dairy fat variants", () => {
   assert.ok(milk25);
   assert.match(milk25!.dishName, /Молоко 2[,.]5%/i);
   assert.doesNotMatch(milk25!.dishName, /безлактоз|1[,.]5%/i);
-  assert.equal(milk25!.fat, 2.5);
+  assert.equal(milk25!.portionGrams, 250);
+  assert.equal(milk25!.fat, 6.3);
+  assert.equal(milk25!.protein, 7);
 });
 
 test("generic dairy staples stay unbranded", () => {
@@ -273,6 +277,74 @@ test("окорочок и куриное бедро: гриль с кожей и
   assert.equal(skinless100?.fat, 9);
   assert.match(lookupRuNutritionTable("окорочок гриль без кожи")!.dishName, /без кожи/);
   assert.doesNotMatch(lookupRuNutritionTable("окорочок гриль куриный")!.dishName, /без кожи/);
+});
+
+test("справочник: Атуотер ±20% и масса БЖУ не больше порции", () => {
+  for (const entry of RU_NUTRITION_ENTRIES) {
+    const protein = entry.protein ?? 0;
+    const fat = entry.fat ?? 0;
+    const carbs = entry.carbs ?? 0;
+    const mass = protein + fat + carbs;
+    assert.ok(
+      mass <= entry.portionGrams + 0.05,
+      `${entry.dishName}: БЖУ ${mass} г > порции ${entry.portionGrams} г`,
+    );
+    const ethanol = entry.isAlcohol ? alcoholEnergyKcal(entry.dishName, entry.portionGrams) : 0;
+    const expected = atwaterKcal(protein, fat, carbs) + ethanol;
+    const gap = Math.abs(entry.calories - expected) / Math.max(entry.calories, expected, 1);
+    assert.ok(
+      gap <= 0.2,
+      `${entry.dishName}: ${entry.calories} ккал vs Атуотер ${expected.toFixed(1)} (${Math.round(gap * 100)}%)`,
+    );
+  }
+});
+
+test("поиск находит винительный падеж и тарелку борща", () => {
+  assert.match(lookupRuNutritionTable("гречку")!.dishName, /Гречн/i);
+  assert.match(lookupRuNutritionTable("шаурму")!.dishName, /Шаурма/);
+  assert.match(lookupRuNutritionTable("пиццу")!.dishName, /Пицца/);
+  assert.match(lookupRuNutritionTable("тарелку борща")!.dishName, /Борщ/);
+  assert.match(lookupRuNutritionTable("курицу")!.dishName, /Курица/);
+});
+
+test("кофе разделён: чёрный, с молоком, капучино, латте, эспрессо", () => {
+  const black = lookupRuNutritionTable("кофе");
+  assert.match(black!.dishName, /чёрн/i);
+  assert.ok(black!.calories <= 5);
+  assert.match(lookupRuNutritionTable("американо")!.dishName, /чёрн/i);
+  assert.match(lookupRuNutritionTable("эспрессо")!.dishName, /Эспрессо/);
+  assert.equal(lookupRuNutritionTable("эспрессо")!.calories, 2);
+  assert.match(lookupRuNutritionTable("кофе с молоком")!.dishName, /с молоком/);
+  assert.match(lookupRuNutritionTable("капучино")!.dishName, /Капучино/);
+  assert.match(lookupRuNutritionTable("латте")!.dishName, /латте/i);
+  assert.doesNotMatch(lookupRuNutritionTable("кофе")!.dishName, /латте/i);
+});
+
+test("новые строки справочника: сало, орехи, шоколад, кола, роллы, курица", () => {
+  assert.match(lookupRuNutritionTable("сало")!.dishName, /Сало/);
+  assert.match(lookupRuNutritionTable("миндаль")!.dishName, /Миндаль/);
+  assert.match(lookupRuNutritionTable("семечки")!.dishName, /Семечки/);
+  assert.match(lookupRuNutritionTable("шоколад")!.dishName, /молочн/i);
+  assert.match(lookupRuNutritionTable("горький шоколад")!.dishName, /горьк/i);
+  assert.match(lookupRuNutritionTable("хлебцы")!.dishName, /Хлебцы/);
+  assert.match(lookupRuNutritionTable("кола")!.dishName, /^Кола$/);
+  assert.match(lookupRuNutritionTable("кола без сахара")!.dishName, /без сахара/);
+  assert.ok(lookupRuNutritionTable("кола без сахара")!.calories <= 5);
+  assert.match(lookupRuNutritionTable("энергетик")!.dishName, /Энергетик/);
+  assert.match(lookupRuNutritionTable("халва")!.dishName, /Халва/);
+  assert.match(lookupRuNutritionTable("филадельфия")!.dishName, /Филадельфия/);
+  assert.equal(lookupRuNutritionTable("филадельфия 100 г")!.portionGrams, 100);
+  assert.equal(lookupRuNutritionTable("филадельфия 1 шт")!.portionGrams, 35);
+  assert.equal(lookupRuNutritionTable("калифорния 100 г")!.portionGrams, 100);
+  assert.equal(lookupRuNutritionTable("калифорния шт")!.portionGrams, 25);
+  assert.match(lookupRuNutritionTable("курица")!.dishName, /^Курица$/);
+  const cheese = lookupRuNutritionTable("сыр твёрдый")!;
+  assert.equal(cheese.portionGrams, 50);
+  assert.equal(cheese.calories, 175);
+  const sour = lookupRuNutritionTable("сметана 10%")!;
+  assert.ok(Math.abs((sour.calories * 100) / sour.portionGrams - 115) < 8);
+  const lean = lookupRuNutritionTable("творог обезжиренный")!;
+  assert.ok((lean.protein ?? 0) / lean.portionGrams <= 0.18);
 });
 
 test("lookupRuNutritionTable matches peanut butter not pasta", () => {
