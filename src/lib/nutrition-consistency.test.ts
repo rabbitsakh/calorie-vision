@@ -14,6 +14,7 @@ import {
   applyNutritionConsistency,
   explainNutritionConsistency,
   LOW_CONFIDENCE_CAP,
+  reviewTextMealNutrition,
 } from "./nutrition-consistency.ts";
 import { normalizeRecognitionNutrition } from "./recognition-nutrition.ts";
 
@@ -103,6 +104,108 @@ test("этанол добавляется к БЖУ, пока плотность
   });
   assert.equal(fixed.calories, 210);
   assert.equal(fixed.carbs, 16);
+});
+
+test("выпечка плотнее 550 ккал/100 г снижает уверенность и не переписывает ккал", () => {
+  const cake = {
+    dishName: "Торт Наполеон",
+    calories: 600,
+    protein: 6,
+    fat: 28,
+    carbs: 70,
+    portionGrams: 100,
+    confidence: 0.8,
+  };
+  assert.ok(explainNutritionConsistency(cake).includes("density"));
+  const fixed = applyNutritionConsistency(cake);
+  assert.equal(fixed.calories, 600);
+  assert.equal(fixed.protein, 6);
+  assert.ok(fixed.confidence <= LOW_CONFIDENCE_CAP);
+});
+
+test("этикетка с массой БЖУ больше порции помечается и не переписывается", () => {
+  const label = {
+    dishName: "Сыр твёрдый",
+    calories: 350,
+    protein: 24,
+    fat: 28,
+    carbs: 0,
+    portionGrams: 50,
+    confidence: 0.9,
+    source: "label",
+  };
+  assert.ok(explainNutritionConsistency(label).includes("macro-mass"));
+  const fixed = applyNutritionConsistency(label);
+  assert.equal(fixed.calories, 350);
+  assert.equal(fixed.protein, 24);
+  assert.equal(fixed.fat, 28);
+  assert.ok(fixed.confidence <= LOW_CONFIDENCE_CAP);
+});
+
+test("текст: 100 г БЖУ на стакан молока пересчитываются, расхождение только предупреждается", () => {
+  const milk = reviewTextMealNutrition({
+    name: "Молоко (250 мл)",
+    kcal: 130,
+    protein: 2.8,
+    fat: 2.5,
+    carbs: 4.7,
+    grams: 250,
+  });
+  assert.ok(milk.codes.includes("per100-basis"));
+  assert.equal(milk.protein, 7);
+  assert.equal(milk.fat, 6.3);
+  assert.equal(milk.carbs, 11.8);
+  assert.equal(milk.kcal, 130);
+  assert.equal(milk.warning, null);
+
+  const gap = reviewTextMealNutrition({
+    name: "Гречка (200 г)",
+    kcal: 500,
+    protein: 6,
+    fat: 2,
+    carbs: 30,
+    grams: 200,
+  });
+  assert.deepEqual(gap.codes, ["macro-energy"]);
+  assert.equal(gap.kcal, 500);
+  assert.equal(gap.protein, 6);
+  assert.match(gap.warning ?? "", /не сходятся/);
+
+  const heavy = reviewTextMealNutrition({
+    name: "Сыр (50 г)",
+    kcal: 348,
+    protein: 24,
+    fat: 28,
+    carbs: 0,
+    grams: 50,
+  });
+  assert.ok(heavy.codes.includes("macro-mass"));
+  assert.equal(heavy.protein, 24);
+  assert.equal(heavy.fat, 28);
+  assert.match(heavy.warning ?? "", /больше порции/);
+
+  const dense = reviewTextMealNutrition({
+    name: "Курица (100 г)",
+    kcal: 800,
+    protein: 30,
+    fat: 10,
+    carbs: 0,
+    grams: 100,
+  });
+  assert.ok(dense.codes.includes("density"));
+  assert.equal(dense.kcal, 800);
+
+  const beer = reviewTextMealNutrition({
+    name: "Пиво светлое (500 мл)",
+    kcal: 72,
+    protein: 2,
+    fat: 0,
+    carbs: 16,
+    grams: 500,
+  });
+  assert.ok(beer.codes.includes("alcohol-gap"));
+  assert.equal(beer.kcal, 210);
+  assert.equal(beer.carbs, 16);
 });
 
 test("промпт просит ориентиры веса, скрытый жир и строгий JSON", () => {

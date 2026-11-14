@@ -29,7 +29,8 @@ import {
 } from "@/lib/assistant-meal-schema";
 import { stripDiaryPlanThrowaway } from "@/lib/assistant-honesty";
 import { enrichUnsetMealNutrition } from "@/lib/assistant-meal-nutrition";
-import { enrichQuickMealsFromText, type QuickMeal } from "@/lib/quick-log";
+import { reviewTextMealNutrition, type NutritionIssueCode } from "@/lib/nutrition-consistency";
+import { enrichQuickMealsFromText, splitQuickPortion, type QuickMeal } from "@/lib/quick-log";
 
 export type AssistantMealParseEvent = {
   jsonDishCount: number;
@@ -56,6 +57,62 @@ export function shouldLogAssistantMealParse(event: AssistantMealParseEvent): boo
     event.unparsedCount > 0 ||
     event.repairLlmUsed
   );
+}
+
+/** Пустой строгий разбор и санитарная проверка. Без текста пользователя. */
+export function logAssistantMealSignal(
+  event: "strict-extract-empty" | "nutrition-sanity",
+  phraseHash: string,
+  codes?: string[],
+): void {
+  if (process.env.ASSISTANT_MEAL_TELEMETRY === "0") return;
+  const payload: { event: string; phraseHash: string; codes?: string[] } = { event, phraseHash };
+  if (codes && codes.length) payload.codes = codes;
+  console.info("[assistant-meal]", JSON.stringify(payload));
+}
+
+function mealPortionGrams(meal: QuickMeal): number | undefined {
+  if (typeof meal.grams === "number" && meal.grams > 0) return meal.grams;
+  const named = splitQuickPortion(meal.name);
+  return named.grams != null && named.grams > 0 ? named.grams : undefined;
+}
+
+/** Правка «100 г вместо порции» и этанола. Остальное — предупреждение на карточке. */
+export function applyTextMealSanity(meals: QuickMeal[]): {
+  meals: QuickMeal[];
+  codes: NutritionIssueCode[];
+} {
+  const seen = new Set<NutritionIssueCode>();
+  const next = meals.map((meal) => {
+    const review = reviewTextMealNutrition({
+      name: meal.name,
+      kcal: meal.kcal,
+      protein: meal.protein,
+      fat: meal.fat,
+      carbs: meal.carbs,
+      grams: mealPortionGrams(meal),
+    });
+    for (const code of review.codes) seen.add(code);
+    if (review.codes.length === 0) return meal;
+    const fixNumbers =
+      review.codes.includes("per100-basis") || review.codes.includes("alcohol-gap");
+    const patched = fixNumbers
+      ? {
+          ...meal,
+          ...(review.kcal != null ? { kcal: review.kcal } : {}),
+          ...(review.protein != null ? { protein: review.protein } : {}),
+          ...(review.fat != null ? { fat: review.fat } : {}),
+          ...(review.carbs != null ? { carbs: review.carbs } : {}),
+        }
+      : meal;
+    if (!review.warning) {
+      if (!fixNumbers) return meal;
+      const { nutritionWarning: _drop, ...rest } = patched;
+      return rest;
+    }
+    return { ...patched, nutritionWarning: review.warning };
+  });
+  return { meals: next, codes: [...seen] };
 }
 
 /** stdout JSON. ASSISTANT_MEAL_TELEMETRY=0 выключает. Фраза пользователя в лог не пишется. */
@@ -153,6 +210,8 @@ export async function resolveAssistantTurnActions(opts: {
           apply: true,
           meals: structuredMealsToAssistantMeals(parsed.meals),
         };
+      } else if (parsed.ok && parsed.meals.length === 0) {
+        logAssistantMealSignal("strict-extract-empty", hashMealPhrase(opts.userMessage));
       }
     } catch (error) {
       console.error("assistant structured extract", error);
@@ -209,10 +268,12 @@ export async function resolveAssistantTurnActions(opts: {
   }
 
   if (!opts.previewPending && actions?.meals?.length) {
-    actions = {
-      ...actions,
-      meals: enrichUnsetMealNutrition(actions.meals, `${opts.userMessage}\n${reply}`),
-    };
+    const enriched = enrichUnsetMealNutrition(actions.meals, `${opts.userMessage}\n${reply}`);
+    const sanity = applyTextMealSanity(enriched);
+    if (sanity.codes.length) {
+      logAssistantMealSignal("nutrition-sanity", hashMealPhrase(opts.userMessage), sanity.codes);
+    }
+    actions = { ...actions, meals: sanity.meals };
   }
 
   if (actions?.meals?.length) {

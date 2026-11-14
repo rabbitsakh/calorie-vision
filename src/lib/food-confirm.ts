@@ -41,6 +41,8 @@ export type FoodConfirmDish = {
   per100?: FoodConfirmPer100 | null;
   /** estimate — типовая строка справочника. unknown — состав не найден, нули не показываем. */
   nutritionBasis?: "estimate" | "unknown";
+  /** Санитарная проверка текста: цифры оставлены, на карточке предупреждение. */
+  nutritionWarning?: string;
   source: FoodConfirmSource;
   barcode?: string;
   brand?: string;
@@ -242,6 +244,7 @@ export function foodConfirmFromQuickMeal(meal: QuickMeal, source: FoodConfirmSou
     unparsed: meal.unparsed,
     per100: meal.per100 ?? null,
     nutritionBasis: meal.nutritionBasis,
+    nutritionWarning: meal.nutritionWarning,
     source,
   };
 }

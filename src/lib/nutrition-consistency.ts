@@ -14,7 +14,11 @@ export const LOW_CONFIDENCE_CAP = 0.45;
 const KCAL_ABS_SLACK = 5;
 const MAX_KCAL_PER_100G = 900;
 const SUSPICIOUS_KCAL_PER_100G = 750;
+/** Выпечка и десерты реже бывают жирнее этого — ниже общего порога 750. */
+const BAKERY_SUSPICIOUS_KCAL_PER_100G = 550;
 const DRINK_SUSPICIOUS_KCAL_PER_100ML = 500;
+/** Текстовая карточка: предупреждение, не тихая перезапись. У фото остаётся 15%. */
+const TEXT_ATWATER_TOLERANCE = 0.25;
 const ETHANOL_DENSITY = 0.789;
 const KCAL_PER_G_ETHANOL = 7;
 
@@ -24,7 +28,8 @@ export type NutritionIssueCode =
   | "density"
   | "items-sum"
   | "alcohol-gap"
-  | "per100-basis";
+  | "per100-basis"
+  | "macro-mass";
 
 const TRUSTED_SOURCES = new Set([
   "openfoodfacts-barcode",
@@ -96,6 +101,8 @@ const ALCOHOL_BANDS: Array<{
 const CONDIMENT_RE =
   /масло|соус|майонез|кетчуп|горчиц|сметан|мёд|(?:^|[^\p{L}])м[её]д(?:[^\p{L}]|$)|сахар|варень|джем|сироп/iu;
 const BITE_RE = /конфет|шоколад|печень|мармелад|зефир|пастил/iu;
+const BAKERY_DESSERT_RE =
+  /торт|пирожн|пирог|пирож|печень|кекс|круассан|булоч|выпеч|десерт|чизкейк|эклер|пончик|вафл|брауни|маффин|слойк|штрудел|кулич|пряник|профитрол|безе|наполеон|медовик|тирамису|рулет/iu;
 const FATTY_RE =
   /масло|сало|(?:^|[^\p{L}])жир(?:[^\p{L}]|$)|майонез|орех|семеч|арахис|миндал|фундук|кешью|грецк|шоколад|халв/iu;
 const WATERY_RE = /бульон|огурц|капуст|кабачок|сельдере|редис|арбуз|листов/iu;
@@ -199,6 +206,103 @@ function kcalPer100(calories: number, portion: number): number {
   return (calories * 100) / portion;
 }
 
+function macroMass(macros: MacroTriple): number {
+  return macros.protein + macros.fat + macros.carbs;
+}
+
+function macroMassOverPortion(macros: MacroTriple, portion: number): boolean {
+  return macroMass(macros) > portion + 0.5;
+}
+
+/** Середина полосы крепости: граммы этанола × 7 ккал/г. 0, если это не алкоголь. */
+export function alcoholEnergyKcal(name: string | undefined, portionMl: number | undefined): number {
+  if (!portionMl || portionMl <= 0) return 0;
+  const value = alcoholKcal(name, portionMl).mid;
+  return Number.isFinite(value) ? value : 0;
+}
+
+function gapWithin(actual: number, reference: number, tolerance: number): boolean {
+  if (Math.abs(actual - reference) <= KCAL_ABS_SLACK) return true;
+  return relativeGap(actual, reference) <= tolerance;
+}
+
+function matchesEnergyAt(
+  calories: number,
+  range: { low: number; high: number },
+  tolerance: number,
+): boolean {
+  if (!Number.isFinite(range.high)) {
+    if (calories + KCAL_ABS_SLACK >= range.low) return true;
+    return gapWithin(calories, range.low, tolerance);
+  }
+  if (calories >= range.low && calories <= range.high) return true;
+  const nearest = calories < range.low ? range.low : range.high;
+  return gapWithin(calories, nearest, tolerance);
+}
+
+/**
+ * Ккал на порцию, а БЖУ как на 100 г (или наоборот). Возвращает правку или null.
+ * Та же ветка, что у фото.
+ */
+function tryPer100Basis(next: FoodRecognitionResult): FoodRecognitionResult | null {
+  const portion = next.portionGrams && next.portionGrams > 0 ? next.portionGrams : undefined;
+  const macros = finiteMacros(next);
+  const alcohol = alcoholKcal(next.dishName, portion);
+  if (!(macros && portion && next.calories > 0 && portion > 100)) return null;
+  const ratio = portion / 100;
+  if (ratio < 1.4) return null;
+  const aw = atwaterKcal(macros.protein, macros.fat, macros.carbs);
+  const range = energyRange(macros, next.fiber, alcohol);
+  if (!(aw > 0 && !matchesEnergy(next.calories, range))) return null;
+  const scaledAw = aw * ratio;
+  const scaledMass = macroMass(macros) * ratio;
+  if (scaledMass <= portion * 1.05 && closeTo(next.calories, scaledAw)) {
+    return {
+      ...next,
+      protein: round1(macros.protein * ratio),
+      fat: round1(macros.fat * ratio),
+      carbs: round1(macros.carbs * ratio),
+      fiber: next.fiber != null ? round1(next.fiber * ratio) : next.fiber,
+      sugar: next.sugar != null ? round1(next.sugar * ratio) : next.sugar,
+    };
+  }
+  if (closeTo(next.calories * ratio, aw) && next.calories * ratio <= portion * 9.05) {
+    const scaledCalories = Math.round(next.calories * ratio);
+    return {
+      ...next,
+      calories: scaledCalories,
+      per100g: alignPer100Calories(next.per100g, scaledCalories, portion),
+    };
+  }
+  return null;
+}
+
+/** Калории выглядят как БЖУ без этанола и ниже пола крепости — дописать спирт. */
+function tryAlcoholGap(next: FoodRecognitionResult): FoodRecognitionResult | null {
+  const portion = next.portionGrams && next.portionGrams > 0 ? next.portionGrams : undefined;
+  const macros = finiteMacros(next);
+  if (!macros || !(next.calories > 0) || portion == null) return null;
+  const alcohol = alcoholKcal(next.dishName, portion);
+  const macroOnly = atwaterKcal(macros.protein, macros.fat, macros.carbs);
+  const range = energyRange(macros, next.fiber, alcohol);
+  if (
+    alcohol.mid >= 40 &&
+    closeTo(next.calories, macroOnly) &&
+    !matchesEnergy(next.calories, range) &&
+    kcalPer100(next.calories, portion) < (alcoholBand(next.dishName)?.minPer100 ?? 0)
+  ) {
+    const corrected = Math.round(range.point);
+    if (corrected > next.calories + KCAL_ABS_SLACK) {
+      return {
+        ...next,
+        calories: corrected,
+        per100g: alignPer100Calories(next.per100g, corrected, portion),
+      };
+    }
+  }
+  return null;
+}
+
 function alignPer100Calories(
   per100g: FoodRecognitionResult["per100g"],
   calories: number,
@@ -245,6 +349,11 @@ function assessLeaf(input: FoodRecognitionResult, plate: boolean): LeafAssessmen
   }
 
   if (trusted) {
+    const trustedMacros = finiteMacros(next);
+    if (trustedMacros && portion && macroMassOverPortion(trustedMacros, portion)) {
+      issues.push("macro-mass");
+      lowConfidence = true;
+    }
     if (portion && next.calories > portion * 9.05) {
       issues.push("density");
       const capped = Math.round(portion * 9);
@@ -261,43 +370,15 @@ function assessLeaf(input: FoodRecognitionResult, plate: boolean): LeafAssessmen
     };
   }
 
-  const macros = finiteMacros(next);
-  const alcohol = alcoholKcal(name, portion);
-  if (macros && portion && next.calories > 0 && portion > 100) {
-    const ratio = portion / 100;
-    if (ratio >= 1.4) {
-      const aw = atwaterKcal(macros.protein, macros.fat, macros.carbs);
-      const range = energyRange(macros, next.fiber, alcohol);
-      if (aw > 0 && !matchesEnergy(next.calories, range)) {
-        const scaledAw = aw * ratio;
-        const scaledMass = (macros.protein + macros.fat + macros.carbs) * ratio;
-        if (scaledMass <= portion * 1.05 && closeTo(next.calories, scaledAw)) {
-          next = {
-            ...next,
-            protein: round1(macros.protein * ratio),
-            fat: round1(macros.fat * ratio),
-            carbs: round1(macros.carbs * ratio),
-            fiber: next.fiber != null ? round1(next.fiber * ratio) : next.fiber,
-            sugar: next.sugar != null ? round1(next.sugar * ratio) : next.sugar,
-          };
-          issues.push("per100-basis");
-        } else if (closeTo(next.calories * ratio, aw) && next.calories * ratio <= portion * 9.05) {
-          const scaledCalories = Math.round(next.calories * ratio);
-          next = {
-            ...next,
-            calories: scaledCalories,
-            per100g: alignPer100Calories(next.per100g, scaledCalories, portion),
-          };
-          issues.push("per100-basis");
-        }
-      }
-    }
+  const per100Fixed = tryPer100Basis(next);
+  if (per100Fixed) {
+    next = per100Fixed;
+    issues.push("per100-basis");
   }
 
   const macrosNow = finiteMacros(next);
   const alcoholNow = alcoholKcal(name, portion);
   if (macrosNow && next.calories > 0) {
-    const macroOnly = atwaterKcal(macrosNow.protein, macrosNow.fat, macrosNow.carbs);
     const range = energyRange(macrosNow, next.fiber, alcoholNow);
     const per100 = portion ? kcalPer100(next.calories, portion) : undefined;
     const impossible =
@@ -319,34 +400,34 @@ function assessLeaf(input: FoodRecognitionResult, plate: boolean): LeafAssessmen
         per100g: alignPer100Calories(next.per100g, Math.max(0, corrected), portion),
       };
       if (!portion || pointPer100 > MAX_KCAL_PER_100G) lowConfidence = true;
-    } else if (
-      alcoholNow.mid >= 40 &&
-      closeTo(next.calories, macroOnly) &&
-      !matchesEnergy(next.calories, range) &&
-      portion != null &&
-      kcalPer100(next.calories, portion) < (alcoholBand(name)?.minPer100 ?? 0)
-    ) {
-      const corrected = Math.round(range.point);
-      if (corrected > next.calories + KCAL_ABS_SLACK) {
+    } else {
+      const alcoholFixed = tryAlcoholGap(next);
+      if (alcoholFixed) {
         issues.push("alcohol-gap");
-        next = {
-          ...next,
-          calories: corrected,
-          per100g: alignPer100Calories(next.per100g, corrected, portion),
-        };
+        next = alcoholFixed;
+      } else if (!matchesEnergy(next.calories, range)) {
+        issues.push("macro-energy");
+        lowConfidence = true;
       }
-    } else if (!matchesEnergy(next.calories, range)) {
-      issues.push("macro-energy");
-      lowConfidence = true;
     }
+  }
+
+  const macrosAfter = finiteMacros(next);
+  if (macrosAfter && portion && macroMassOverPortion(macrosAfter, portion)) {
+    if (!issues.includes("macro-mass")) issues.push("macro-mass");
+    lowConfidence = true;
   }
 
   if (portion && next.calories > 0) {
     const per100 = kcalPer100(next.calories, portion);
     const fatty = FATTY_RE.test(name);
+    const bakery = BAKERY_DESSERT_RE.test(name);
     const watery = drink || WATERY_RE.test(name);
+    const tooDense = bakery
+      ? per100 > BAKERY_SUSPICIOUS_KCAL_PER_100G
+      : per100 > SUSPICIOUS_KCAL_PER_100G && !fatty;
     if (
-      (per100 > SUSPICIOUS_KCAL_PER_100G && !fatty) ||
+      tooDense ||
       (drink && per100 > DRINK_SUSPICIOUS_KCAL_PER_100ML) ||
       (per100 < 8 && !watery && next.calories > 15)
     ) {
@@ -502,4 +583,94 @@ export function applyNutritionConsistency(result: FoodRecognitionResult): FoodRe
   }
 
   return next;
+}
+
+export type TextMealNutrition = {
+  name: string;
+  kcal?: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  fiber?: number;
+  grams?: number;
+};
+
+export type TextMealReview = {
+  kcal?: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  fiber?: number;
+  /** Что сработало: и правка, и предупреждение. */
+  codes: NutritionIssueCode[];
+  /** Текст для карточки. Пусто, если числа поправили и расхождений не осталось. */
+  warning: string | null;
+};
+
+const TEXT_WARNING: Partial<Record<NutritionIssueCode, string>> = {
+  "macro-mass": "Масса БЖУ больше порции",
+  density: "Слишком много ккал на 100 г",
+  "macro-energy": "Ккал не сходятся с БЖУ",
+};
+
+function textWarningCodes(next: FoodRecognitionResult): NutritionIssueCode[] {
+  const codes: NutritionIssueCode[] = [];
+  const name = next.dishName ?? "";
+  const portion = next.portionGrams && next.portionGrams > 0 ? next.portionGrams : undefined;
+  const macros = finiteMacros(next);
+  const drink = looksLikeDrinkName(name, next.brand);
+  if (macros && portion && macroMassOverPortion(macros, portion)) codes.push("macro-mass");
+  if (portion && next.calories > 0) {
+    const per100 = kcalPer100(next.calories, portion);
+    const fatty = FATTY_RE.test(name);
+    if (!drink && !fatty && per100 > SUSPICIOUS_KCAL_PER_100G) codes.push("density");
+  }
+  if (macros && next.calories > 0) {
+    const range = energyRange(macros, next.fiber, alcoholKcal(name, portion));
+    if (!matchesEnergyAt(next.calories, range, TEXT_ATWATER_TOLERANCE)) codes.push("macro-energy");
+  }
+  return codes;
+}
+
+/**
+ * Санитарная проверка текста. 100 г вместо названной порции и дыру этанола правим.
+ * Массу БЖУ, плотность и Атуотер >25% только помечаем.
+ */
+export function reviewTextMealNutrition(input: TextMealNutrition): TextMealReview {
+  const portion = input.grams && input.grams > 0 ? input.grams : undefined;
+  let next: FoodRecognitionResult = {
+    dishName: input.name,
+    calories: typeof input.kcal === "number" && input.kcal > 0 ? input.kcal : 0,
+    protein: input.protein,
+    fat: input.fat,
+    carbs: input.carbs,
+    fiber: input.fiber,
+    portionGrams: portion,
+    confidence: 0.8,
+  };
+  const codes: NutritionIssueCode[] = [];
+  const per100Fixed = tryPer100Basis(next);
+  if (per100Fixed) {
+    next = per100Fixed;
+    codes.push("per100-basis");
+  }
+  const alcoholFixed = tryAlcoholGap(next);
+  if (alcoholFixed) {
+    next = alcoholFixed;
+    codes.push("alcohol-gap");
+  }
+  const warnings = textWarningCodes(next);
+  for (const code of warnings) {
+    if (!codes.includes(code)) codes.push(code);
+  }
+  const warningText = warnings.map((code) => TEXT_WARNING[code]).filter(Boolean);
+  return {
+    kcal: next.calories > 0 ? next.calories : input.kcal,
+    protein: next.protein,
+    fat: next.fat,
+    carbs: next.carbs,
+    fiber: next.fiber,
+    codes,
+    warning: warningText.length ? `${warningText.join(". ")}. Проверьте цифры.` : null,
+  };
 }
