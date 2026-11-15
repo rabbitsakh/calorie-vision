@@ -131,6 +131,10 @@ async function curlTelegramHttps(
   const args = [
     "--ipv4",
     "-sS",
+    // oauth.telegram.org sometimes replies with Content-Encoding: gzip
+    // even when the client did not ask for compression. Without this flag
+    // curl leaves the gzip bytes in stdout and JWKS/token JSON parse fails.
+    "--compressed",
     "--max-time",
     maxTime,
     "-w",
@@ -221,8 +225,8 @@ function normalizeRequestParts(init?: RequestInit): {
 
 /**
  * HTTPS fetch to Telegram.
- * - With TELEGRAM_HTTPS_PROXY / TELEGRAM_USE_CURL → curl --ipv4 [--proxy] immediately
- * - Else Node fetch (ipv4first) with short timeout, then curl --ipv4 fallback
+ * - With TELEGRAM_HTTPS_PROXY / TELEGRAM_USE_CURL → curl --ipv4 --compressed [--proxy]
+ * - Else Node fetch (ipv4first) with short timeout, then curl --ipv4 --compressed fallback
  */
 export async function fetchTelegramHttps(
   url: string,
