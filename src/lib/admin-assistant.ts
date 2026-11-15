@@ -2,6 +2,8 @@
  * Admin-only AI coach: prompt, validation, structured action blocks.
  */
 
+import { normalizeClientRequestId } from "@/lib/meal-request-id";
+
 export const ADMIN_ASSISTANT_MAX_MESSAGES = 40;
 export const ADMIN_ASSISTANT_MAX_CONTENT = 6000;
 
@@ -44,6 +46,8 @@ export type AssistantActions = {
     };
     /** Предупреждение санитарной проверки. Числа при этом не переписываются. */
     nutritionWarning?: string;
+    /** Повтор сохранения той же карточки. Ставит клиент, не модель. */
+    clientRequestId?: string;
   }>;
   /**
    * В прозе блюд больше, чем в карточке. Клиент предлагает дописать строку.
@@ -214,6 +218,9 @@ export function buildAssistantSystemPrompt(
     "Новый продукт с количеством и глаголом употребления (съел, выпил, перекусил, поел) — это meals[], даже если названы время и приём. «Выпил 70г протеина на перекус в 10:30» → meals с note «перекус» и time «10:30», не patchMeals.",
     "Изолят сыворотки — 85–90% белка, не 100%: 60 г порошка ≈ 51 г белка и ~220 ккал.",
     "Светлое пиво ≈ 43 ккал/100 мл. 3 л ≈ 1290 ккал, Б15 Ж0 У105, не 900.",
+    "Борщ, тарелка 300 г: ~57 ккал/100 г, около 170 ккал на тарелку. Не ставь 280 и не считай борщ как 90+ ккал/100 г.",
+    "Сырники: одна штука ≈ 70 г. «3 шт» = 210 г. Ккал на эту порцию = 4·белки + 9·жиры + 4·углеводы из справочника, не отдельная цифра.",
+    "Куриная грудка без слов «жареная», «гриль» или «в масле» — сырая или варёная без кожи, ~112 ккал/100 г. 150 г ≈ 170 ккал. Жареную плотность ставь только если способ готовки назван.",
     "Время и приём пищи — атрибуты новой записи. patchMeals и deleteMeals только для явной правки уже существующего: «перенеси», «исправь», «измени», «поправь», «не в 10, а в 11», «перенеси перекус на 11:00», «исправь вес протеина на 50 г».",
     "targetDate = сегодня|вчера|завтра|YYYY-MM-DD. «Вчерашний ужин» → targetDate «вчера», note «ужин» у всех блюд списка.",
     "Несколько блюд в одном сообщении = несколько meals[] (пюре + котлета + пиво → 3 объекта, не только напиток).",
@@ -454,6 +461,9 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         ...(unit ? { unit } : {}),
         ...(mealSlot ? { mealSlot } : {}),
         ...(row.unparsed === true ? { unparsed: true } : {}),
+        ...(normalizeClientRequestId(row.clientRequestId)
+          ? { clientRequestId: normalizeClientRequestId(row.clientRequestId)! }
+          : {}),
       });
     }
     if (meals.length) out.meals = meals;

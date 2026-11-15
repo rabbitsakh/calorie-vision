@@ -7,6 +7,7 @@ import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { withBasePath } from "@/lib/paths";
 import { readApiJson } from "@/lib/read-api-json";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { withClientRequestIdsOnBody } from "@/lib/meal-request-id";
 
 export type ConfirmedMealSaveResult =
   | { ok: true; mealIds: string[]; savedCount: number; totalCalories: number }
@@ -20,7 +21,7 @@ export async function postConfirmedMeals(
     return { ok: false, error: "Нет блюд для записи", queued: false };
   }
   const totalCalories = inputs.reduce((sum, row) => sum + (Number(row.calories) || 0), 0);
-  const body = inputs.length > 1 ? { entries: inputs } : inputs[0]!;
+  const body = withClientRequestIdsOnBody(inputs.length > 1 ? { entries: inputs } : inputs[0]!);
   try {
     const response = await fetch(withBasePath("/api/meals"), {
       method: "POST",

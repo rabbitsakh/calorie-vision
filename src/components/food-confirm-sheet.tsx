@@ -151,6 +151,7 @@ export function FoodConfirmSheet({
   );
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const requestIdsRef = useRef(new Map<string, string>());
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -804,7 +805,15 @@ export function FoodConfirmSheet({
 
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
       const payloads = await Promise.all(
-        dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
+        dishes.map(async (dish) => {
+          const payload = await buildSavePayload(dish, mealGroupId);
+          let clientRequestId = requestIdsRef.current.get(dish.id);
+          if (!clientRequestId) {
+            clientRequestId = crypto.randomUUID();
+            requestIdsRef.current.set(dish.id, clientRequestId);
+          }
+          return { ...payload, clientRequestId };
+        }),
       );
       const rememberedCorrection = payloads.some((payload) => payload.wasCorrected);
       const saveFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));

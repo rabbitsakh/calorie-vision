@@ -10,6 +10,7 @@ import {
   type DayTemplateMeal,
 } from "@/lib/day-templates";
 import { withBasePath } from "@/lib/paths";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 import type { MealEntry } from "@/types";
 
 type DayTemplatesProps = {
@@ -163,7 +164,9 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
     setApplying(template.id);
     setError(null);
     try {
-      for (const meal of template.meals) {
+      for (let index = 0; index < template.meals.length; index += 1) {
+        const meal = template.meals[index]!;
+        const attempt = `template:${selectedDate}:${template.id}:${index}`;
         const resp = await fetch(withBasePath("/api/meals"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -178,12 +181,16 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
             sugar: meal.sugar,
             portionGrams: meal.portionGrams,
             mealType: meal.mealType,
+            clientRequestId: clientRequestIdForAttempt(attempt),
           }),
         });
         if (!resp.ok) {
           setError("Не удалось применить шаблон");
           return;
         }
+      }
+      for (let index = 0; index < template.meals.length; index += 1) {
+        finishClientRequestAttempt(`template:${selectedDate}:${template.id}:${index}`);
       }
       onSaved();
     } finally {

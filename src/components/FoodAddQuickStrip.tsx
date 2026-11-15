@@ -8,6 +8,7 @@ import { withBasePath } from "@/lib/paths";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { useTimezone } from "@/lib/use-timezone";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 
 type QuickItem = {
   key: string;
@@ -129,6 +130,7 @@ export function FoodAddQuickStrip({ selectedDate, mealType, onLogged }: FoodAddQ
     setBusyKey(item.key);
     setNotice(null);
     const extras = buildQuickMealLogExtras(selectedDate, timezone);
+    const attempt = `quick-strip:${selectedDate}:${item.key}`;
     const body: SaveMealInput = {
       date: selectedDate,
       dishName: item.dishName,
@@ -141,6 +143,7 @@ export function FoodAddQuickStrip({ selectedDate, mealType, onLogged }: FoodAddQ
       portionGrams: item.portionGrams ?? undefined,
       mealType: mealType || item.mealType || extras.mealType,
       eatenAt: extras.eatenAt,
+      clientRequestId: clientRequestIdForAttempt(attempt),
     };
 
     try {
@@ -150,6 +153,7 @@ export function FoodAddQuickStrip({ selectedDate, mealType, onLogged }: FoodAddQ
         body: JSON.stringify(body),
       });
       if (resp.ok) {
+        finishClientRequestAttempt(attempt);
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
         onLogged();

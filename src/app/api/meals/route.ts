@@ -12,9 +12,29 @@ import {
 } from "@/lib/save-meal";
 import { mealImagePathForUser } from "@/lib/upload";
 import { grantGymChestForDate } from "@/lib/gym-reward-grant";
+import { saveMealOnce } from "@/lib/meal-idempotency";
+import { normalizeClientRequestId } from "@/lib/meal-request-id";
 
 type SaveMealBody = SaveMealInput;
 type BatchSaveMealBody = { entries: SaveMealInput[] };
+
+async function createMealEntry(userId: string, entry: SaveMealInput, date: string) {
+  const clientRequestId = normalizeClientRequestId(entry.clientRequestId);
+  return saveMealOnce({
+    clientRequestId,
+    findExisting: (key) =>
+      prisma.mealEntry.findFirst({ where: { userId, clientRequestId: key } }),
+    create: async () => {
+      const imagePath = await mealImagePathForUser(userId, entry.imagePath);
+      const data = buildMealCreateData(
+        userId,
+        { ...entry, imagePath: imagePath ?? undefined, clientRequestId: clientRequestId ?? undefined },
+        date,
+      );
+      return prisma.mealEntry.create({ data });
+    },
+  });
+}
 
 function isBatchSaveBody(body: unknown): body is BatchSaveMealBody {
   return (
@@ -56,30 +76,30 @@ export async function POST(request: NextRequest) {
             crypto.randomUUID()
           : body.entries[0]?.mealGroupId?.trim() || null;
 
-      const entries = await prisma.$transaction(async (tx) => {
-        const created = [];
-        for (const row of validated) {
-          const imagePath = await mealImagePathForUser(session.user.id, row.entry.imagePath);
-          const data = buildMealCreateData(session.user.id, { ...row.entry, imagePath: imagePath ?? undefined }, row.date);
-          if (mealGroupId && !data.mealGroupId) {
-            data.mealGroupId = mealGroupId;
-          }
-          created.push(await tx.mealEntry.create({ data }));
-        }
-        return created;
-      });
+      const saved = [];
+      for (const row of validated) {
+        const result = await createMealEntry(
+          session.user.id,
+          mealGroupId && !row.entry.mealGroupId?.trim()
+            ? { ...row.entry, mealGroupId }
+            : row.entry,
+          row.date,
+        );
+        saved.push({ ...result, entryInput: row.entry, date: row.date });
+      }
 
+      const fresh = saved.filter((row) => row.created);
       await Promise.all(
-        validated.map((row) => rememberMealCorrectionIfNeeded(session.user.id, row.entry)),
+        fresh.map((row) => rememberMealCorrectionIfNeeded(session.user.id, row.entryInput)),
       );
 
-      const confirmed = validated.filter((row) => isMealConfirmInput(row.entry)).length;
+      const confirmed = fresh.filter((row) => isMealConfirmInput(row.entryInput)).length;
       if (confirmed > 0) trackMealConfirmed(session.user.id, confirmed);
 
-      const dates = [...new Set(validated.map((row) => row.date))];
+      const dates = [...new Set(fresh.map((row) => row.date))];
       await Promise.all(dates.map((date) => grantGymChestForDate(session.user.id, date)));
 
-      return NextResponse.json({ entries });
+      return NextResponse.json({ entries: saved.map((row) => row.row) });
     }
 
     const validation = validateSaveMealInput(body);
@@ -87,17 +107,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const imagePath = await mealImagePathForUser(session.user.id, body.imagePath);
-    const entry = await prisma.mealEntry.create({
-      data: buildMealCreateData(session.user.id, { ...body, imagePath: imagePath ?? undefined }, validation.date),
-    });
+    const saved = await createMealEntry(session.user.id, body, validation.date);
 
-    await rememberMealCorrectionIfNeeded(session.user.id, body);
+    if (saved.created) {
+      await rememberMealCorrectionIfNeeded(session.user.id, body);
+      if (isMealConfirmInput(body)) trackMealConfirmed(session.user.id, 1);
+      await grantGymChestForDate(session.user.id, validation.date);
+    }
 
-    if (isMealConfirmInput(body)) trackMealConfirmed(session.user.id, 1);
-    await grantGymChestForDate(session.user.id, validation.date);
-
-    return NextResponse.json({ entry });
+    return NextResponse.json({ entry: saved.row });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

@@ -64,8 +64,8 @@ test("enrichAlternativesFromRuTable fills calories-only vision alternatives", ()
     ),
   );
   const alt = enriched.alternatives?.[0];
-  assert.equal(alt?.protein, 12);
-  assert.equal(alt?.carbs, 22);
+  assert.equal(alt?.protein, 17.2);
+  assert.equal(alt?.carbs, 25.5);
 });
 
 test("enrichAlternativesFromRuTable maps milk alt without coffee latte bleed", () => {

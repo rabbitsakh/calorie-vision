@@ -226,11 +226,14 @@ model MealEntry {
   lookupMode         String?   @db.VarChar(16)
   /** User-editable meal time; null → display createdAt. */
   eatenAt            DateTime?
+  /** Повтор того же сохранения (сеть, офлайн-очередь). NULL у старых строк. */
+  clientRequestId    String?   @db.VarChar(64)
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, clientRequestId])
   @@index([userId, date])
   @@index([date])
   @@index([recognitionSource])

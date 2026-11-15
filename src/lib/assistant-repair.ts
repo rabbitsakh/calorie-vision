@@ -633,6 +633,83 @@ function typicalPieceGrams(dishName: string): number | null {
   return null;
 }
 
+type TablePack = NonNullable<ReturnType<typeof lookupRuNutritionTable>>;
+
+/**
+ * Масштаб строки справочника на граммы порции.
+ * Ккал справочника уже сведены с Атуотером, поэтому после масштаба
+ * они остаются в пределах 1 ккал от БЖУ. Алкоголь хранит этанол в calories.
+ */
+function nutritionFromPack(pack: TablePack, portion: number): {
+  kcal: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+} {
+  const base = pack.portionGrams > 0 ? pack.portionGrams : 100;
+  const scale = portion / base;
+  const num = (value?: number) =>
+    value == null || !Number.isFinite(value) ? undefined : Math.round(value * scale * 10) / 10;
+  return {
+    kcal: Math.round((Number(pack.calories) || 0) * scale),
+    protein: num(pack.protein),
+    fat: num(pack.fat),
+    carbs: num(pack.carbs),
+  };
+}
+
+export type OfflineFoodEstimate = {
+  dishName: string;
+  grams: number;
+  unit: "г" | "мл";
+  pieces: number | null;
+  kcal: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  per100: ReturnType<typeof referencePer100>;
+};
+
+/** Офлайн-оценка фразы по справочнику. Без сети и без глагола «съел». */
+export function estimateOfflineFoodPhrase(phrase: string): OfflineFoodEstimate | null {
+  const drinkQ = drinkLookupQuery(phrase);
+  let pack: TablePack | null = drinkQ ? lookupRuNutritionTable(drinkQ) : null;
+  if (!pack) {
+    for (const query of foodLookupQueries(phrase)) {
+      pack = lookupRuNutritionTable(query);
+      if (pack) break;
+    }
+  }
+  if (!pack) pack = lookupRuNutritionTable(phrase);
+  if (!pack) return null;
+
+  const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
+  const explicitGrams = parsePortionGramsFromMessage(phrase);
+  const drinkMl = explicitGrams == null && drinkQ ? parseDrinkVolumeMl(phrase) : null;
+  const grams = explicitGrams ?? drinkMl;
+  const pieces = grams == null ? parsePieceCountFromMessage(phrase) : null;
+  const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
+  const perPiece =
+    pieceWeight == null && pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
+  const portion =
+    grams != null
+      ? grams
+      : pieceWeight != null && pieces != null
+        ? pieceWeight * pieces
+        : perPiece && pieces != null
+          ? Math.round(baseGrams * pieces)
+          : baseGrams;
+  const unit = drinkQ || /мл|литр|\bл\b/i.test(phrase) ? "мл" : "г";
+  return {
+    dishName: pack.dishName,
+    grams: portion,
+    unit,
+    pieces,
+    ...nutritionFromPack(pack, portion),
+    per100: referencePer100(pack),
+  };
+}
+
 /** Map genitive / colloquial drink phrases to a table-friendly query. */
 function drinkLookupQuery(message: string): string | null {
   const n = message.toLowerCase().replace(/ё/g, "е");
@@ -909,19 +986,20 @@ function mealLineFromFragment(
   if (kcal == null && pack) {
     pricedFromTable = true;
     const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-    let scale: number;
-    if (portion != null && portion > 0) {
-      scale = portion / baseGrams;
-    } else if (pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName)) {
-      scale = pieces;
-    } else {
-      scale = 1;
-    }
-    kcal = Math.round(pack.calories * scale);
-    protein =
-      pack.protein == null ? undefined : Math.round(pack.protein * scale * 10) / 10;
-    fat = pack.fat == null ? undefined : Math.round(pack.fat * scale * 10) / 10;
-    carbs = pack.carbs == null ? undefined : Math.round(pack.carbs * scale * 10) / 10;
+    const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
+    const scaledPortion =
+      portion != null && portion > 0
+        ? portion
+        : pieceWeight != null && pieces != null
+          ? pieceWeight * pieces
+          : pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName)
+            ? Math.round(baseGrams * pieces)
+            : baseGrams;
+    const scaled = nutritionFromPack(pack, scaledPortion);
+    kcal = scaled.kcal;
+    protein = scaled.protein;
+    fat = scaled.fat;
+    carbs = scaled.carbs;
   }
 
   const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
@@ -1433,40 +1511,14 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
   if (messageLooksLikeMultiDish(userMessage)) return null;
   if (messageHasExplicitMealEdit(userMessage) && !messageLogsNewEatenFood(userMessage)) return null;
 
-  const drinkQ = drinkLookupQuery(userMessage);
-  let pack = drinkQ ? lookupRuNutritionTable(drinkQ) : null;
-  if (!pack) {
-    for (const query of foodLookupQueries(userMessage)) {
-      pack = lookupRuNutritionTable(query);
-      if (pack) break;
-    }
-  }
-  if (!pack) return null;
+  const estimated = estimateOfflineFoodPhrase(userMessage);
+  if (!estimated) return null;
 
-  const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-  const explicitGrams = parsePortionGramsFromMessage(userMessage);
-  const drinkMl = explicitGrams == null && drinkQ ? parseDrinkVolumeMl(userMessage) : null;
-  const grams = explicitGrams ?? drinkMl;
-  const pieces = grams == null ? parsePieceCountFromMessage(userMessage) : null;
-  const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
-  const perPiece =
-    pieceWeight == null && pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
-  const portion =
-    grams != null
-      ? grams
-      : pieceWeight != null && pieces != null
-        ? pieceWeight * pieces
-        : perPiece && pieces != null
-          ? Math.round(baseGrams * pieces)
-          : baseGrams;
-  const scale = portion / baseGrams;
-  const num = (v?: number) =>
-    v == null || !Number.isFinite(v) ? undefined : Math.round(v * scale * 10) / 10;
-  const unit = drinkQ || /мл|литр|\bл\b/i.test(userMessage) ? "мл" : "г";
+  const pieces = estimated.pieces;
   const name =
     pieces != null && pieces > 1
-      ? `${pack.dishName} (${pieces} шт, ${portion} ${unit})`
-      : `${pack.dishName} (${portion} ${unit})`;
+      ? `${estimated.dishName} (${pieces} шт, ${estimated.grams} ${estimated.unit})`
+      : `${estimated.dishName} (${estimated.grams} ${estimated.unit})`;
   const { note, targetDate } = mealMetaFromMessage(userMessage);
 
   return {
@@ -1475,18 +1527,18 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
     meals: [
       {
         name: name.slice(0, 120),
-        kcal: Math.round(pack.calories * scale),
-        protein: num(pack.protein),
-        fat: num(pack.fat),
-        carbs: num(pack.carbs),
-        grams: portion,
-        unit,
+        kcal: estimated.kcal,
+        protein: estimated.protein,
+        fat: estimated.fat,
+        carbs: estimated.carbs,
+        grams: estimated.grams,
+        unit: estimated.unit,
         nutritionBasis: "estimate",
-        per100: referencePer100(pack),
+        per100: estimated.per100,
         note,
       },
     ],
-    summary: `к подтверждению: ${pack.dishName}`,
+    summary: `к подтверждению: ${estimated.dishName}`,
   };
 }
 
