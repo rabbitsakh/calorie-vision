@@ -24,6 +24,13 @@ export function GymHomePreview() {
   const params = useSearchParams();
   const summary = params.get("screen") === "summary";
   const dark = params.get("theme") === "dark";
+  const longNames = params.get("names") === "long";
+  const routineName = longNames
+    ? "Жим лёжа узким хватом и разводка гантелей на наклонной скамье"
+    : ROUTINE.name;
+  const repeatLabel = longNames
+    ? "Повтор: грудь, трицепс и задняя дельта с длинным названием тренировки"
+    : "Вт 10 ноя · грудь и трицепс";
 
   if (summary) {
     return (
@@ -66,7 +73,7 @@ export function GymHomePreview() {
   }
 
   return (
-    <div className={`gym-preview${dark ? " gym-force-dark" : ""}`}>
+    <div className={`gym-preview${dark ? " gym-force-dark" : ""}`} data-layout-card>
       <div className="gym-preview__main">
         <div className="cv-segment-tabs cv-segment-tabs--3" role="tablist">
           <button type="button" className="chip chip-active min-h-9">
@@ -82,8 +89,8 @@ export function GymHomePreview() {
         <WorkoutWeekPlan
           todayKey="2026-11-12"
           sessions={[]}
-          lastRepeat={{ id: "s1", label: "Вт 10 ноя · грудь и трицепс", hint: "4 упражнения" }}
-          routinesFallback={[ROUTINE]}
+          lastRepeat={{ id: "s1", label: repeatLabel, hint: "4 упражнения" }}
+          routinesFallback={[{ ...ROUTINE, name: routineName }]}
           onOpenSession={() => {}}
           onStartBlank={() => {}}
           onRepeatLast={() => {}}
