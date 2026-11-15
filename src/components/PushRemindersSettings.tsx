@@ -286,7 +286,7 @@ export function PushRemindersSettings() {
         for (const slot of REMINDER_SCHEDULE) {
           const row = reminderPrefs[slot.kind];
           payload[slot.kind] = {
-            enabled: row?.enabled ?? true,
+            enabled: row?.enabled ?? !isOptInReminder(slot.kind),
             hour: row?.hour ?? slot.hour,
           };
         }
@@ -309,7 +309,7 @@ export function PushRemindersSettings() {
     const payload: PushReminderPrefs = {};
     for (const slot of REMINDER_SCHEDULE) {
       const row = reminderPrefs[slot.kind];
-      const enabled = row?.enabled ?? true;
+      const enabled = row?.enabled ?? !isOptInReminder(slot.kind);
       const hour = row?.hour ?? slot.hour;
       payload[slot.kind] = { enabled, hour };
     }
@@ -352,7 +352,7 @@ export function PushRemindersSettings() {
     for (const slot of REMINDER_SCHEDULE) {
       const row = reminderPrefs[slot.kind];
       payload[slot.kind] = {
-        enabled: row?.enabled ?? true,
+        enabled: row?.enabled ?? !isOptInReminder(slot.kind),
         hour: row?.hour ?? slot.hour,
       };
     }
@@ -443,8 +443,8 @@ export function PushRemindersSettings() {
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний
-            чек-ин — в часовом поясе профиля. Завтрак, воду и сводку калорий можно включить
-            отдельно. Для каждого типа можно выбрать час.
+            чек-ин — в часовом поясе профиля. Завтрак, воду, сводку калорий и «Подведём итог дня?»
+            можно включить отдельно. Для каждого типа можно выбрать час.
             {isCapLocal
               ? " В приложении RuStore уведомления локальные на устройстве."
               : " На iPhone — только из приложения с экрана «Домой» (iOS 16.4+)."}
@@ -550,7 +550,7 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3">
         <p className="text-sm font-semibold text-[var(--foreground)]">Какие напоминания слать</p>
         <p className="mt-1 text-sm text-[var(--muted-strong)]">
-          По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. «Вы ещё не записали ужин» выключено, пока не включите. Остальные — по желанию.
+          По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. «Вы ещё не записали ужин» и «Подведём итог дня?» выключены, пока не включите. Остальные — по желанию.
         </p>
         <ul className="mt-3 space-y-2">
           {REMINDER_SCHEDULE.filter((slot) => QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {
@@ -587,7 +587,7 @@ export function PushRemindersSettings() {
                     const hour = Number(event.target.value);
                     setReminderPrefs((prev) => ({
                       ...prev,
-                      [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? true, hour },
+                      [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? !isOptInReminder(slot.kind), hour },
                     }));
                   }}
                 >
@@ -648,7 +648,7 @@ export function PushRemindersSettings() {
                       const hour = Number(event.target.value);
                       setReminderPrefs((prev) => ({
                         ...prev,
-                        [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? true, hour },
+                        [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? !isOptInReminder(slot.kind), hour },
                       }));
                     }}
                   >

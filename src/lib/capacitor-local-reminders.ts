@@ -97,6 +97,7 @@ export const CAP_REMINDER_IDS: Record<ReminderKind, number> = {
   checkin: 9110,
   gym: 9111,
   unlogged_dinner: 9112,
+  evening_summary: 9113,
 };
 
 const ALL_REMINDER_IDS = Object.values(CAP_REMINDER_IDS);
@@ -319,6 +320,11 @@ export function localReminderCopy(
         };
       }
       return { title: "Серия", body: "Одна запись — и день ваш." };
+    case "evening_summary":
+      return {
+        title: "Подведём итог дня?",
+        body: "На экране «Сегодня» — съеденное, норма и чем можно добрать.",
+      };
     case "checkin":
       if (s?.hasMood) {
         return {
