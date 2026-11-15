@@ -38,9 +38,9 @@ test("enrichAlternativesFromRuTable backfills macros from RU table", () => {
   });
 
   const borscht = enriched.alternatives?.[0];
-  assert.equal(borscht?.protein, 12);
-  assert.equal(borscht?.fat, 14);
-  assert.equal(borscht?.carbs, 22);
+  assert.equal(borscht?.protein, 17.2);
+  assert.equal(borscht?.fat, 12.3);
+  assert.equal(borscht?.carbs, 25.5);
 
   const caesar = enriched.alternatives?.[1];
   assert.equal(caesar?.protein, 22);
@@ -113,7 +113,7 @@ test("enrichAlternatives prefers RU table then OFF", async () => {
     },
   );
 
-  assert.equal(enriched.alternatives?.[0]?.protein, 12);
+  assert.equal(enriched.alternatives?.[0]?.protein, 17.2);
   assert.equal(enriched.alternatives?.[1]?.protein, 20);
 });
 
@@ -167,6 +167,6 @@ test("enrichAlternatives prefers RU table, OFF, then GigaChat", async () => {
     },
   );
 
-  assert.equal(enriched.alternatives?.[0]?.protein, 12);
+  assert.equal(enriched.alternatives?.[0]?.protein, 17.2);
   assert.equal(enriched.alternatives?.[1]?.protein, 15);
 });

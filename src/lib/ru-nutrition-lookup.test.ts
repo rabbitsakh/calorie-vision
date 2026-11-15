@@ -39,7 +39,10 @@ test("lookupRuNutritionTable matches borscht", () => {
   const hit = lookupRuNutritionTable("Домашний борщ");
   assert.ok(hit);
   assert.match(hit!.dishName, /Борщ/i);
-  assert.ok(hit!.calories >= 200);
+  assert.ok(hit!.portionGrams === 300);
+  const per100 = hit!.calories / (hit!.portionGrams / 100);
+  assert.ok(per100 >= 55 && per100 <= 60, `борщ ${per100} ккал/100 г`);
+  assert.ok(hit!.calories >= 165 && hit!.calories <= 180);
 });
 
 test("lookupRuNutritionTable matches buckwheat synonym", () => {
