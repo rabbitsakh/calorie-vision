@@ -1,6 +1,7 @@
 import type { RecognitionResponse } from "@/types";
 import type { NutritionValues } from "@/lib/nutrition";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { clientRequestIdsOf, withClientRequestIdsOnBody } from "@/lib/meal-request-id";
 import { deleteOfflinePhoto, loadOfflinePhoto, saveOfflinePhoto } from "@/lib/offline-photo-store";
 import {
   applyOptimisticMealDelete,
@@ -235,22 +236,31 @@ export function enqueueFailedSave(
   selectedDate: string,
   body: SaveMealInput | { entries: SaveMealInput[] },
 ): string {
+  const stamped = withClientRequestIdsOnBody(body);
+  const requestIds = new Set(clientRequestIdsOf(stamped));
+  const items = readQueue();
+  const duplicate = items.find((item) => {
+    if (item.kind !== "failed-save") return false;
+    const ids = clientRequestIdsOf(item.body);
+    return ids.some((id) => requestIds.has(id));
+  });
+  if (duplicate) return duplicate.id;
+
   const id =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `failed-${Date.now()}`;
-  const items = readQueue();
   items.push({
     id,
     kind: "failed-save",
     createdAt: new Date().toISOString(),
     selectedDate,
-    body,
+    body: stamped,
   });
   writeQueue(items);
   // Wave S — keep ration-day cache in sync for offline reloads.
   try {
-    applyOptimisticMeals(selectedDate, body);
+    applyOptimisticMeals(selectedDate, stamped);
   } catch {
     // ignore
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useRef, useState, type ReactElement } from "react";
 import {
   FOOD_CONFIRM_PORTION_SKIM,
   foodConfirmEnergyWarning,
@@ -75,6 +75,7 @@ function SimpleFoodConfirm({
   const [local, setLocal] = useState(dishes);
   const [ownSlot, setOwnSlot] = useState<FoodConfirmSlot | null>(mealSlot);
   const [busy, setBusy] = useState(false);
+  const requestIdsRef = useRef<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const rows = onDishesChange ? dishes : local;
@@ -119,7 +120,13 @@ function SimpleFoodConfirm({
     }
     setBusy(true);
     setError(null);
-    const inputs = foodConfirmToSaveInputs(prepared.ready, date, eatenAt);
+    while (requestIdsRef.current.length < prepared.ready.length) {
+      requestIdsRef.current.push(crypto.randomUUID());
+    }
+    const inputs = foodConfirmToSaveInputs(prepared.ready, date, eatenAt).map((input, index) => ({
+      ...input,
+      clientRequestId: requestIdsRef.current[index],
+    }));
     if (!online) {
       enqueueFailedSave(date, inputs.length > 1 ? { entries: inputs } : inputs[0]!);
       setBusy(false);

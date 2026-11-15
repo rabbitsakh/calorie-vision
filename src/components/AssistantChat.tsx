@@ -391,7 +391,9 @@ function ActionCard({
   } | null>(null);
   const [lastOkMessage, setLastOkMessage] = useState<string | null>(null);
   const [draftMeals] = useState<QuickMeal[]>(() =>
-    enrichQuickMealsFromText(actions.meals ?? [], actions.summary ?? ""),
+    enrichQuickMealsFromText(actions.meals ?? [], actions.summary ?? "").map((meal) =>
+      meal.clientRequestId ? meal : { ...meal, clientRequestId: crypto.randomUUID() },
+    ),
   );
 
   const mealsDone = streamDone.meals || localDone.meals;

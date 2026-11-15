@@ -13,6 +13,7 @@ import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 const PANEL_ID = "quick-add";
@@ -135,6 +136,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   async function addMeal(item: QuickAddItem) {
     setAdding(item.dishName);
     setAddNotice(null);
+    const attempt = `quick-add:${selectedDate}:${item.dishName}:${item.calories}`;
     const body: SaveMealInput = {
       date: selectedDate,
       dishName: item.dishName,
@@ -146,6 +148,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       sugar: item.sugar ?? undefined,
       portionGrams: item.portionGrams ?? undefined,
       mealType: item.mealType ?? undefined,
+      clientRequestId: clientRequestIdForAttempt(attempt),
     };
     try {
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -154,6 +157,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         body: JSON.stringify(body),
       });
       if (resp.ok) {
+        finishClientRequestAttempt(attempt);
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
         onSaved();

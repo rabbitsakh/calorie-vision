@@ -16,6 +16,7 @@ import { caloriesFromField, macroFromField } from "@/lib/known-calories";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { useTimezone } from "@/lib/use-timezone";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 
 const PANEL_ID = "favorites";
 const FAVORITES_CACHE_KEY = "cv-favorites-cache-v1";
@@ -275,6 +276,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       portionGrams = Math.round(gramsOverride);
     }
 
+    const attempt = `favorite:${selectedDate}:${food.id}`;
     const body: SaveMealInput = {
       date: selectedDate,
       dishName: food.name,
@@ -287,6 +289,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       portionGrams,
       mealType,
       eatenAt,
+      clientRequestId: clientRequestIdForAttempt(attempt),
     };
     try {
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -295,6 +298,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         body: JSON.stringify(body),
       });
       if (resp.ok) {
+        finishClientRequestAttempt(attempt);
         void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
         trackFirstMealSaveGoal();
         trackMealSavedGoal();

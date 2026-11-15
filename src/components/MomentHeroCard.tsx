@@ -22,6 +22,7 @@ import {
   type MorningTodayRoutine,
 } from "@/lib/morning-today";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 import { requestOpenChestQuick } from "@/lib/open-chest-quick";
 import { subscribeChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import type { EveningChestSnapshot } from "@/lib/moment-hero";
@@ -297,6 +298,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   async function addMealIdea(idea: MealIdea, index: number) {
     setAddingIdea(index);
     setIdeaError(null);
+    const attempt = `idea:${selectedDate}:${idea.name}:${idea.calories}`;
     try {
       const extras = buildQuickMealLogExtras(selectedDate, timezone);
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -310,6 +312,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
           fat: idea.fat || undefined,
           carbs: idea.carbs || undefined,
           portionGrams: idea.portionGrams || undefined,
+          clientRequestId: clientRequestIdForAttempt(attempt),
           ...extras,
         }),
       });
@@ -317,6 +320,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
         setIdeaError("Не удалось добавить — попробуйте ещё раз");
         return;
       }
+      finishClientRequestAttempt(attempt);
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       notifyFoodSaved();

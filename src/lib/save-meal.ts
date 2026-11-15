@@ -4,6 +4,7 @@ import { decodeHtmlEntities } from "@/lib/html-text";
 import { rememberFoodCorrection } from "@/lib/food-corrections-store";
 import { shouldRememberFoodCorrectionFromFields } from "@/lib/confirm-correction";
 import { requireDateKey } from "@/lib/dates";
+import { normalizeClientRequestId } from "@/lib/meal-request-id";
 
 export type SaveMealInput = {
   date: string;
@@ -34,6 +35,8 @@ export type SaveMealInput = {
   lookupMode?: string;
   /** ISO instant — when the meal was eaten (defaults to save time if omitted). */
   eatenAt?: string;
+  /** Повтор того же сохранения. Пусто — как раньше, новая строка. */
+  clientRequestId?: string;
 };
 
 function mealTypeValue(value: string | undefined): "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" | null {
@@ -83,6 +86,7 @@ export function buildMealCreateData(
     barcode: body.barcode?.trim().slice(0, 32) || null,
     brand: body.brand?.trim().slice(0, 80) || null,
     lookupMode: body.lookupMode?.trim().slice(0, 16) || null,
+    clientRequestId: normalizeClientRequestId(body.clientRequestId),
     ...(eatenAt !== undefined && eatenAt !== null ? { eatenAt } : {}),
   };
 }

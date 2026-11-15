@@ -9,6 +9,7 @@ import { withBasePath } from "@/lib/paths";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { useTimezone } from "@/lib/use-timezone";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 
 const QUICK_ADD_CACHE_KEY = "cv-quick-add-cache-v1";
 const FAVORITES_CACHE_KEY = "cv-favorites-cache-v1";
@@ -174,6 +175,7 @@ export function QuickLogStrip({
     setBusy(food.id);
     setNotice(null);
     const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+    const attempt = `quick-log:${selectedDate}:${food.id}`;
     const body: SaveMealInput = {
       date: selectedDate,
       dishName: food.name,
@@ -186,6 +188,7 @@ export function QuickLogStrip({
       portionGrams: food.portionGrams ?? undefined,
       mealType,
       eatenAt,
+      clientRequestId: clientRequestIdForAttempt(attempt),
     };
     try {
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -194,6 +197,7 @@ export function QuickLogStrip({
         body: JSON.stringify(body),
       });
       if (resp.ok) {
+        finishClientRequestAttempt(attempt);
         void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
         trackFirstMealSaveGoal();
         trackMealSavedGoal();

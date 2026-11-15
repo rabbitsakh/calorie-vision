@@ -250,6 +250,25 @@ test("enqueueFailedDelete drops pending patch for the same meal", () => {
   assert.equal(countOfflineQueue(), 1);
 });
 
+test("повтор той же записи не кладёт вторую копию в очередь", () => {
+  mockStorage();
+  const body = {
+    date: "2026-08-24",
+    dishName: "Борщ",
+    calories: 171,
+    clientRequestId: "req-queue-01",
+  };
+  const first = enqueueFailedSave("2026-08-24", body);
+  const second = enqueueFailedSave("2026-08-24", body);
+  assert.equal(second, first);
+  assert.equal(countFailedSaves(), 1);
+  const stored = listFailedSaves()[0]?.body;
+  assert.ok(stored && !("entries" in stored));
+  if (stored && !("entries" in stored)) {
+    assert.equal(stored.clientRequestId, "req-queue-01");
+  }
+});
+
 test("countOfflineQueue includes patches and deletes with saves", () => {
   mockStorage();
   enqueueFailedSave("2026-08-24", { date: "2026-08-24", dishName: "Каша", calories: 300 });

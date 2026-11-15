@@ -5,6 +5,7 @@ import { AllergenHint } from "@/components/AllergenHint";
 import { SceneBusy } from "@/components/SceneSkeleton";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
@@ -132,6 +133,7 @@ export function MealSuggestions({
   async function addSuggestion(suggestion: Suggestion, index: number) {
     setAddingIndex(index);
     setAddError(null);
+    const attempt = `suggest:${selectedDate}:${suggestion.name}:${suggestion.calories}`;
     try {
       const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -147,12 +149,14 @@ export function MealSuggestions({
           portionGrams: suggestion.portionGrams || undefined,
           mealType,
           eatenAt,
+          clientRequestId: clientRequestIdForAttempt(attempt),
         }),
       });
       const payload = (await resp.json()) as { error?: string };
       if (!resp.ok) {
         throw new Error(payload.error ?? "Не удалось добавить");
       }
+      finishClientRequestAttempt(attempt);
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       onSaved?.();

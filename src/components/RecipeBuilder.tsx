@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { clientRequestIdForAttempt, finishClientRequestAttempt } from "@/lib/meal-request-id";
 import { scaleNutritionByPortion } from "@/lib/nutrition";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
@@ -215,6 +216,7 @@ export function RecipeBuilder({
       const name = recipeName.trim();
       const nutrition = nutritionPayload(portionOverride);
       const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+      const attempt = `recipe:${selectedDate}:${name}`;
       const resp = await fetch(withBasePath("/api/meals"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,12 +226,14 @@ export function RecipeBuilder({
           ...nutrition,
           mealType,
           eatenAt,
+          clientRequestId: clientRequestIdForAttempt(attempt),
         }),
       });
       if (!resp.ok) {
         const data = (await resp.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "Не удалось добавить в дневник");
       }
+      finishClientRequestAttempt(attempt);
       setOkMsg(
         nutrition.portionGrams
           ? `Добавлено в дневник (${nutrition.portionGrams} г)`

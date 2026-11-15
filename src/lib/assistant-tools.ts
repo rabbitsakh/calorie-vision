@@ -26,6 +26,7 @@ import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { prisma } from "@/lib/prisma";
 import { knownCalories, recognitionCalorieLabel } from "@/lib/known-calories";
 import { buildMealCreateData, validateSaveMealInput, type SaveMealInput } from "@/lib/save-meal";
+import { saveMealOnce } from "@/lib/meal-idempotency";
 import {
   normalizeShoppingName,
   type ShoppingListItem,
@@ -173,17 +174,27 @@ export async function toolSaveMeals(opts: {
     const input: SaveMealInput = {
       ...raw,
       mealType: fromNote ?? inferMealTypeFromHour(hour),
+      clientRequestId: meal?.clientRequestId,
     };
     const validated = validateSaveMealInput(input);
     if (validated.error || !validated.date) continue;
     const imagePath = await mealImagePathForUser(opts.userId, input.imagePath);
-    const row = await prisma.mealEntry.create({
-      data: buildMealCreateData(
-        opts.userId,
-        { ...input, imagePath: imagePath ?? undefined },
-        validated.date,
-      ),
+    const saved = await saveMealOnce({
+      clientRequestId: input.clientRequestId,
+      findExisting: (key) =>
+        prisma.mealEntry.findFirst({
+          where: { userId: opts.userId, clientRequestId: key },
+        }),
+      create: () =>
+        prisma.mealEntry.create({
+          data: buildMealCreateData(
+            opts.userId,
+            { ...input, imagePath: imagePath ?? undefined },
+            validated.date,
+          ),
+        }),
     });
+    const row = saved.row;
     created.push({ id: row.id, dishName: row.dishName, calories: row.calories });
   }
   if (!created.length) {
