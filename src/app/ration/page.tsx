@@ -23,6 +23,7 @@ import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { MomentHeroCard } from "@/components/MomentHeroCard";
+import { EveningDaySummaryCard } from "@/components/EveningDaySummaryCard";
 import { QuickLogStrip } from "@/components/QuickLogStrip";
 import { useDayFeedEvents } from "@/components/useDayFeedEvents";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
@@ -310,6 +311,14 @@ function RationBody({
           ) : (
             <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
           )}
+          {date === today ? (
+            <EveningDaySummaryCard
+              today={today}
+              selectedDate={date}
+              timezone={timezone}
+              onSaved={bump}
+            />
+          ) : null}
 
           {/* First viewport ops: pending ∪ offline ∪ queue — one strip, then meal feed */}
           <div className="ration-day-ops">

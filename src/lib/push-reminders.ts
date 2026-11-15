@@ -442,6 +442,17 @@ export function buildReminderPayload(
         tag: "cv-reactivation",
       };
 
+    case "evening_summary":
+      if (ctx.mealCount <= 0) return null;
+      return {
+        title: "Подведём итог дня?",
+        body: isB
+          ? "На «Сегодня» — съеденное, норма и пара идей, чем добрать."
+          : "Коротко: калории, БЖУ и вода. Без оценок.",
+        url: rationUrl,
+        tag: "cv-evening-summary",
+      };
+
     case "gym":
       if (shouldSkipGymReminder(ctx)) return null;
       {

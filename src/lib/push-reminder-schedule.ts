@@ -10,7 +10,8 @@ export type ReminderKind =
   | "weekly"
   | "reactivation"
   | "gym"
-  | "unlogged_dinner";
+  | "unlogged_dinner"
+  | "evening_summary";
 
 export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekday?: number }> = [
   { kind: "weekly", hour: 9, weekday: 1 },
@@ -23,6 +24,7 @@ export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekda
   { kind: "unlogged_dinner", hour: 17 },
   { kind: "water_evening", hour: 18 },
   { kind: "calories", hour: 19 },
+  { kind: "evening_summary", hour: 19 },
   { kind: "streak", hour: 20 },
   { kind: "checkin", hour: 21 },
 ];
@@ -91,7 +93,7 @@ export function quietFirstRunPrefs(): PushReminderPrefs {
 }
 
 /** Не входят в тихий набор: шлём только если человек явно включил. */
-export const OPT_IN_REMINDER_KINDS: ReminderKind[] = ["unlogged_dinner"];
+export const OPT_IN_REMINDER_KINDS: ReminderKind[] = ["unlogged_dinner", "evening_summary"];
 
 export function isOptInReminder(kind: ReminderKind): boolean {
   return OPT_IN_REMINDER_KINDS.includes(kind);
@@ -141,6 +143,7 @@ export function reminderKindLabel(kind: ReminderKind, hour?: number): string {
     reactivation: `Мягкое возвращение (${time})`,
     gym: `Сегодня зал (${time})`,
     unlogged_dinner: `Вы ещё не записали ужин (${time})`,
+    evening_summary: `Подведём итог дня? (${time})`,
   };
   return labels[kind];
 }

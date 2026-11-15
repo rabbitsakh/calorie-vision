@@ -62,6 +62,9 @@ export function reminderDeepLink(kind: ReminderKind): string {
   if (kind === "checkin") {
     return `${withBasePath("/ration")}#checkin`;
   }
+  if (kind === "evening_summary") {
+    return `${withBasePath("/ration")}#evening-day-summary`;
+  }
   if (kind === "reactivation") {
     return assistantWeekLink({
       prefill: "Помоги спланировать неделю: рацион и 2–3 тренировки",

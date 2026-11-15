@@ -84,8 +84,28 @@ test("quiet defaults keep dinner but skip water_evening", () => {
   assert.deepEqual(remindersForLocalTime(18, 1), ["dinner"]);
 });
 
-test("schedule has 12 reminder slots", () => {
-  assert.equal(REMINDER_SCHEDULE.length, 12);
+test("schedule has 13 reminder slots", () => {
+  assert.equal(REMINDER_SCHEDULE.length, 13);
+});
+
+test("итог дня выключен, пока его не включат", () => {
+  assert.deepEqual(remindersForLocalTime(19, 3), []);
+  assert.deepEqual(remindersForLocalTime(19, 3, quietFirstRunPrefs()), []);
+  assert.deepEqual(
+    remindersForLocalTime(19, 3, {
+      evening_summary: { enabled: true, hour: 19 },
+      calories: { enabled: false },
+    }),
+    ["evening_summary"],
+  );
+  const payload = buildReminderPayload("evening_summary", {
+    ...baseCtx,
+    mealCount: 2,
+    totalCalories: 1500,
+  });
+  assert.equal(payload?.title, "Подведём итог дня?");
+  assert.match(payload?.url ?? "", /#evening-day-summary/);
+  assert.equal(buildReminderPayload("evening_summary", baseCtx), null);
 });
 
 test("dinner reminder skipped when already logged", () => {
