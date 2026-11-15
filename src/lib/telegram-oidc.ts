@@ -16,7 +16,23 @@ let jwks: JWTVerifyGetKey | null = null;
 let jwksFetchedAt = 0;
 const JWKS_TTL_MS = 60 * 60 * 1000;
 
-/** Load JWKS via fetchTelegramHttps so TELEGRAM_HTTPS_PROXY / curl --ipv4 apply. */
+/** One JWKS download. Throws TELEGRAM_JWKS_JSON when the body is not JSON. */
+async function fetchTelegramJwksDocument(): Promise<JSONWebKeySet> {
+  const response = await fetchTelegramHttps(TELEGRAM_JWKS_URL, { method: "GET" });
+  const raw = await response.text();
+  if (!response.ok) {
+    throw new Error(`TELEGRAM_JWKS_HTTP_${response.status}:${raw.slice(0, 80)}`);
+  }
+  try {
+    return JSON.parse(raw) as JSONWebKeySet;
+  } catch {
+    throw new Error(`TELEGRAM_JWKS_JSON:${raw.slice(0, 80)}`);
+  }
+}
+
+/** Load JWKS via fetchTelegramHttps so TELEGRAM_HTTPS_PROXY / curl --ipv4 apply.
+ *  A body that is not JSON is fetched once more and is never cached.
+ */
 async function getTelegramJwks(): Promise<JWTVerifyGetKey> {
   preferTelegramIpv4();
   const fresh = jwks && Date.now() - jwksFetchedAt < JWKS_TTL_MS;
@@ -24,16 +40,15 @@ async function getTelegramJwks(): Promise<JWTVerifyGetKey> {
     return jwks;
   }
 
-  const response = await fetchTelegramHttps(TELEGRAM_JWKS_URL, { method: "GET" });
-  const raw = await response.text();
-  if (!response.ok) {
-    throw new Error(`TELEGRAM_JWKS_HTTP_${response.status}:${raw.slice(0, 80)}`);
-  }
   let json: JSONWebKeySet;
   try {
-    json = JSON.parse(raw) as JSONWebKeySet;
-  } catch {
-    throw new Error(`TELEGRAM_JWKS_JSON:${raw.slice(0, 80)}`);
+    json = await fetchTelegramJwksDocument();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.startsWith("TELEGRAM_JWKS_JSON:")) {
+      throw error;
+    }
+    json = await fetchTelegramJwksDocument();
   }
   if (!json?.keys?.length) {
     throw new Error("TELEGRAM_JWKS_EMPTY");
