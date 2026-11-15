@@ -1208,6 +1208,9 @@ body:has(.guest-try) .cookie-consent {
   gap: 0.4rem;
   margin: 0.35rem 0 0.15rem;
   padding: 0 0.25rem;
+  /* Stay inside the day card: default min-width:auto lets the row widen the scene. */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .quick-log-strip__head {
@@ -1241,6 +1244,8 @@ body:has(.guest-try) .cookie-consent {
   display: flex;
   flex-wrap: nowrap;
   gap: 0.4rem;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
   padding-bottom: 0.15rem;
   scrollbar-width: none;
@@ -1252,7 +1257,29 @@ body:has(.guest-try) .cookie-consent {
 }
 
 .quick-log-strip__chips > * {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: min(12rem, 100%);
+}
+
+/* .chip centers its label; on a narrow row that clips the start of the name. */
+.quick-log-strip__chips > .chip {
+  justify-content: flex-start;
+  text-align: left;
+  overflow: hidden;
+}
+
+.quick-log-strip__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.quick-log-strip__kcal {
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Hybrid H2 — «проверь и запиши» sheet over «Сегодня» */
