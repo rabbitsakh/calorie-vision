@@ -231,23 +231,32 @@ export function QuickLogStrip({
         {showYesterday ? (
           <button
             type="button"
-            className="chip min-h-10 bg-[var(--accent-soft)] text-[0.9375rem] font-semibold text-[var(--accent-ink)]"
+            className="chip quick-log-strip__chip min-h-10 bg-[var(--accent-soft)] text-[0.9375rem] font-semibold text-[var(--accent-ink)]"
             disabled={busy !== null}
             onClick={() => void copyYesterday()}
           >
-            {busy === "yesterday" ? "Копируем…" : `Повторить вчера · ${yesterdayCount} ${intakeWord(yesterdayCount)}`}
+            <span className="quick-log-strip__name">
+              {busy === "yesterday" ? "Копируем…" : `Повторить вчера · ${yesterdayCount} ${intakeWord(yesterdayCount)}`}
+            </span>
           </button>
         ) : null}
         {topFavs.map((food) => (
           <button
             key={food.id}
             type="button"
-            className="chip min-h-10 max-w-[12rem] truncate text-[0.9375rem]"
+            className="chip quick-log-strip__chip min-h-10 text-[0.9375rem]"
             disabled={busy !== null}
             title={`${food.name} · ${food.calories} ккал`}
             onClick={() => void logFavorite(food)}
           >
-            {busy === food.id ? "…" : `${food.name} · ${food.calories}`}
+            {busy === food.id ? (
+              "…"
+            ) : (
+              <>
+                <span className="quick-log-strip__name">{food.name}</span>
+                <span className="quick-log-strip__kcal"> · {food.calories}</span>
+              </>
+            )}
           </button>
         ))}
       </div>
