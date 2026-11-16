@@ -69,6 +69,37 @@ async function assertNoHorizontalOverflow(page: Page) {
   expect(issues, issues.join("\n")).toEqual([]);
 }
 
+/** Полоса ккал, строки БЖУ, идеи, «Вода» и «Зал» внутри карточки дня. */
+async function assertDayCardBlocksFillWidth(page: Page) {
+  const issues = await page.evaluate(() => {
+    const card = document.querySelector("[data-testid='moment-hero']");
+    if (!(card instanceof HTMLElement)) return ["нет карточки дня"];
+    const style = getComputedStyle(card);
+    const contentWidth =
+      card.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    const blocks = [
+      ...card.querySelectorAll(".moment-kcal-scale, .moment-macro, .moment-meal-idea, .moment-chip"),
+    ].filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const found: string[] = [];
+    if (blocks.length < 7) {
+      found.push(`видно ${blocks.length} блоков, нужны полоса ккал, строки БЖУ, идеи, вода и зал`);
+    }
+    for (const el of blocks) {
+      const width = el.getBoundingClientRect().width;
+      const ratio = contentWidth > 0 ? width / contentWidth : 0;
+      if (ratio < 0.9) {
+        const text = (el.getAttribute("aria-label") || el.textContent || el.className)
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 48);
+        found.push(`«${text}» ${Math.round(ratio * 100)}% ширины карточки`);
+      }
+    }
+    return found;
+  });
+  expect(issues, issues.join("\n")).toEqual([]);
+}
+
 test.describe("узкие экраны, тёмная тема", () => {
   for (const width of WIDTHS) {
     test(`Сегодня ${width}px не разъезжается`, async ({ page }) => {
@@ -115,6 +146,24 @@ test.describe("узкие экраны, тёмная тема", () => {
       await expect(page.getByLabel("Вода")).toBeVisible();
       await expect(page.getByText(FAVORITES[0]!.name).first()).toBeVisible();
       await assertNoHorizontalOverflow(page);
+    });
+
+    test(`карточка дня ${width}px на всю ширину`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.addInitScript(() => {
+        localStorage.setItem("cv_metrika_consent", "declined");
+      });
+      await page.goto("/dev/today-hero-preview/?theme=dark");
+      const card = page.getByTestId("moment-hero");
+      await expect(card).toBeVisible();
+      await expect(card.locator(".moment-kcal-scale")).toBeVisible();
+      await expect(card.locator(".moment-macro")).toHaveCount(3);
+      await expect(card.getByRole("button", { name: /Сырники льняные с клюквой/ })).toBeVisible();
+      await expect(card.getByRole("button", { name: /Протеин изолят/ })).toBeVisible();
+      await expect(card.getByRole("button", { name: /Стакан/ })).toBeVisible();
+      await expect(card.getByRole("link", { name: /Открыть/ })).toBeVisible();
+      await assertDayCardBlocksFillWidth(page);
     });
 
     test(`Зал ${width}px не разъезжается`, async ({ page }) => {
