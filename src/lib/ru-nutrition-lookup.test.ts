@@ -293,11 +293,16 @@ test("справочник: Атуотер ±20% и масса БЖУ не бо�
       `${entry.dishName}: БЖУ ${mass} г > порции ${entry.portionGrams} г`,
     );
     const ethanol = entry.isAlcohol ? alcoholEnergyKcal(entry.dishName, entry.portionGrams) : 0;
-    const expected = atwaterKcal(protein, fat, carbs) + ethanol;
-    const gap = Math.abs(entry.calories - expected) / Math.max(entry.calories, expected, 1);
+    const plain = atwaterKcal(protein, fat, carbs) + ethanol;
+    // Клетчатка, которая не входит в углеводы, даёт ~2 ккал/г (псиллиум и похожие).
+    const withFiber = plain + 2 * (entry.fiber ?? 0);
+    const gapOf = (expected: number) =>
+      Math.abs(entry.calories - expected) / Math.max(entry.calories, expected, 1);
+    const gap = Math.min(gapOf(plain), gapOf(withFiber));
+    const closest = gapOf(plain) <= gapOf(withFiber) ? plain : withFiber;
     assert.ok(
       gap <= 0.2,
-      `${entry.dishName}: ${entry.calories} ккал vs Атуотер ${expected.toFixed(1)} (${Math.round(gap * 100)}%)`,
+      `${entry.dishName}: ${entry.calories} ккал vs Атуотер ${closest.toFixed(1)} (${Math.round(gap * 100)}%)`,
     );
   }
 });
@@ -347,7 +352,15 @@ test("новые строки справочника: сало, орехи, шо
   const sour = lookupRuNutritionTable("сметана 10%")!;
   assert.ok(Math.abs((sour.calories * 100) / sour.portionGrams - 115) < 8);
   const lean = lookupRuNutritionTable("творог обезжиренный")!;
-  assert.ok((lean.protein ?? 0) / lean.portionGrams <= 0.18);
+  assert.equal(lean.portionGrams, 100);
+  assert.equal(lean.calories, 85);
+  assert.equal(lean.protein, 18);
+  assert.equal(lean.carbs, 3.3);
+  assert.ok((lean.fat ?? 0) > 0 && (lean.fat ?? 0) <= 1.8);
+  assert.equal(lookupRuNutritionTable("творог 0%")!.calories, 85);
+  const psyllium = lookupRuNutritionTable("псиллиум")!;
+  assert.equal(psyllium.calories, 200);
+  assert.ok((psyllium.fiber ?? 0) >= 70);
 });
 
 test("lookupRuNutritionTable matches peanut butter not pasta", () => {

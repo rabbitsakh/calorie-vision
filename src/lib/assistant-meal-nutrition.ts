@@ -217,10 +217,15 @@ function clearMacros(meal: AssistantMealDraft): AssistantMealDraft {
   return next;
 }
 
-/** Граммы из первой строки корпуса: это фраза пользователя, не черновик модели. */
+/**
+ * Граммы из первой строки корпуса: это фраза пользователя, не черновик модели.
+ * В списке «300г, … 30г, … 5г» первая цифра принадлежит только первому блюду.
+ */
 function leadingLineGrams(corpus: string): number | null {
   const line = (corpus.split(/\r?\n/, 1)[0] ?? "").replace(/\u00a0/g, " ");
-  const match = /(\d+(?:[.,]\d+)?)\s*(?:грамм(?:а|ов)?|гр|г|мл)(?=$|\s|[^\p{L}\p{N}])/iu.exec(line);
+  const marks = line.match(/(\d+(?:[.,]\d+)?)\s*(?:грамм(?:а|ов)?|гр|г|мл)(?=$|\s|[^\p{L}\p{N}])/giu) ?? [];
+  if (marks.length !== 1) return null;
+  const match = /(\d+(?:[.,]\d+)?)/.exec(marks[0] ?? "");
   if (!match?.[1]) return null;
   const grams = Number(match[1].replace(",", "."));
   if (!Number.isFinite(grams) || grams <= 0 || grams > 20000) return null;
@@ -257,10 +262,63 @@ function withoutInventedGrams(meal: AssistantMealDraft, kcal: number): Assistant
   return next;
 }
 
-function enrichOne(meal: AssistantMealDraft, corpus: string): AssistantMealDraft {
-  if (!mealMacrosLookUnset(meal)) return meal;
+/** Пользователь сам написал ккал у блюда — оценку модели не подменяем. */
+function userNamedKcal(userMessage: string, dishName: string): boolean {
+  return /\d+(?:[.,]\d+)?\s*(?:ккал|kcal)/iu.test(dishContext(dishName, userMessage));
+}
+
+/** «0 ккал» в фразе пользователя, не подстрока «жир» внутри «обезжиренный». */
+function userNamedZeroKcal(userMessage: string, dishName: string): boolean {
+  return /(?:^|[^\d])0(?:[.,]0+)?\s*(?:ккал|kcal)/iu.test(dishContext(dishName, userMessage));
+}
+
+/**
+ * Модель занизила известный продукт больше чем в 1,5 раза (творог 40 ккал/100 г
+ * против этикетки) или поставила 0. Завышение не трогаем: его только помечает проверка.
+ * Напитки с честным нулём БЖУ не трогаем.
+ */
+function alignWithTableIfDiverges(
+  meal: AssistantMealDraft,
+  userMessage: string,
+): AssistantMealDraft {
+  if (meal.nutritionBasis === "estimate" || meal.nutritionBasis === "unknown" || meal.unparsed) {
+    return meal;
+  }
+  if (drinkMacrosStayEmpty(meal)) return meal;
+  if (userNamedKcal(userMessage, meal.name)) return meal;
+  const pack = lookupPack(meal.name);
+  if (!pack) return meal;
+  const grams = mealNamedGrams(meal);
+  if (grams == null) return meal;
+  const scaled = scalePack(pack, grams);
+  const modelKcal = typeof meal.kcal === "number" && meal.kcal > 0 ? meal.kcal : 0;
+  const understated =
+    modelKcal > 0 && scaled.kcal > 0 && modelKcal / scaled.kcal < 1 / REFERENCE_DENSITY_RATIO;
+  const explicitZero = meal.kcal === 0;
+  if (!explicitZero && !understated) return meal;
+  const next = withGrams(meal, grams);
+  return {
+    ...next,
+    kcal: scaled.kcal,
+    protein: scaled.protein,
+    fat: scaled.fat,
+    carbs: scaled.carbs,
+    per100: referencePer100(pack),
+    nutritionBasis: "estimate",
+  };
+}
+
+function enrichOne(
+  meal: AssistantMealDraft,
+  corpus: string,
+  userMessage: string,
+): AssistantMealDraft {
+  if (!mealMacrosLookUnset(meal)) return alignWithTableIfDiverges(meal, userMessage);
   const stated = statedNutrition(dishContext(meal.name, corpus));
-  if (stated?.kind === "zeros") return meal;
+  // Ноль из ответа модели не блокирует справочник. Ноль из фразы пользователя — блокирует.
+  if (stated?.kind === "zeros") {
+    if (userNamedZeroKcal(userMessage, meal.name) || !lookupPack(meal.name)) return meal;
+  }
   if (
     stated?.kind === "numbers" &&
     (stated.protein != null || stated.fat != null || stated.carbs != null)
@@ -345,6 +403,8 @@ function enrichOne(meal: AssistantMealDraft, corpus: string): AssistantMealDraft
 export function enrichUnsetMealNutrition(
   meals: AssistantMealDraft[],
   corpus: string,
+  userMessage?: string,
 ): AssistantMealDraft[] {
-  return meals.map((meal) => enrichOne(meal, corpus));
+  const statedByUser = userMessage ?? corpus;
+  return meals.map((meal) => enrichOne(meal, corpus, statedByUser));
 }

@@ -104,7 +104,8 @@ export const GYM_PROGRAMS: readonly GymProgram[] = [
         slots: [
           slot("squat", 4, 6),
           slot("rdl", 3, 8),
-          slot("leg-curl", 3, 10),
+          // В зале это сгибание делают сидя. Вариант «лёжа» остаётся в справочнике.
+          slot("leg-curl-seat", 3, 10),
           slot("calf-stand", 3, 12),
           slot("crunch", 3, 12),
         ],

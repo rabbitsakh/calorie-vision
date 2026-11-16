@@ -11,6 +11,7 @@ import {
   runAssistantMealFixture,
   type AssistantMealParseEvent,
 } from "./assistant-meal-pipeline.ts";
+import { parseStructuredMealsFromText } from "./assistant-repair.ts";
 import { splitQuickPortion } from "./quick-log.ts";
 
 process.env.ASSISTANT_MEAL_TELEMETRY = "0";
@@ -609,6 +610,87 @@ test("«(100 г) — 740 ккал» у окорочка не клеит ккал
   assert.equal(meal.fat, 30);
   assert.equal(meal.carbs, 0);
   assert.notEqual(gramsOf(meal.name), 100);
+});
+
+const COTTAGE_PHRASE =
+  "Творог обезжиренный 300г, протеин изолят 30г, псиллиум 5г, молоко 100мл";
+
+test("фраза целиком: творог по этикетке, псиллиум не ноль, изолят и молоко на месте", () => {
+  const meals = parseStructuredMealsFromText(COTTAGE_PHRASE);
+  assert.equal(meals.length, 4);
+  const cottage = meals.find((meal) => /творог/i.test(meal.name))!;
+  const isolate = meals.find((meal) => /протеин|изолят/i.test(meal.name))!;
+  const husk = meals.find((meal) => /псилл/i.test(meal.name))!;
+  const milk = meals.find((meal) => /молоко/i.test(meal.name))!;
+  assert.equal(gramsOf(cottage.name), 300);
+  assert.equal(cottage.kcal, 255);
+  assert.equal(cottage.protein, 54);
+  assert.equal(cottage.fat, 1.8);
+  assert.equal(cottage.carbs, 9.9);
+  assert.equal(gramsOf(isolate.name), 30);
+  assert.equal(isolate.kcal, 111);
+  assert.equal(isolate.protein, 25.5);
+  assert.equal(gramsOf(husk.name), 5);
+  assert.equal(husk.kcal, 10);
+  assert.ok((husk.kcal ?? 0) > 0);
+  assert.equal(gramsOf(milk.name), 100);
+  assert.equal(milk.kcal, 52);
+  assert.match(milk.name, /мл/);
+});
+
+test("оценка модели 40 ккал/100 г у творога уступает справочнику, псиллиум не остаётся нулём", async () => {
+  const raw =
+    [
+      "Вот разбор:",
+      "- творог обезжиренный 300 г — 120 ккал, белки 30 г, жиры 0 г, углеводы 6 г",
+      "- протеин изолят 30 г — 120 ккал, белки 27 г, жиры 1 г, углеводы 2 г",
+      "- псиллиум 5 г — 0 ккал",
+      "- молоко 100 мл — 46 ккал",
+      "Нажми подтвердить, чтобы сохранить.",
+    ].join("\n") +
+    fence({
+      apply: true,
+      meals: [
+        {
+          name: "творог обезжиренный",
+          grams: 300,
+          unit: "г",
+          kcal: 120,
+          protein: 30,
+          fat: 0,
+          carbs: 6,
+        },
+        {
+          name: "протеин изолят",
+          grams: 30,
+          unit: "г",
+          kcal: 120,
+          protein: 27,
+          fat: 1,
+          carbs: 2,
+        },
+        { name: "псиллиум", grams: 5, unit: "г", kcal: 0, protein: 0, fat: 0, carbs: 0 },
+        { name: "молоко", grams: 100, unit: "мл", kcal: 46, protein: 3, fat: 1.5, carbs: 4.7 },
+      ],
+    });
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: COTTAGE_PHRASE });
+  assert.equal(out.card.length, 4);
+  const cottage = out.card.find((meal) => /творог/i.test(meal.name))!;
+  const isolate = out.card.find((meal) => /протеин|изолят/i.test(meal.name))!;
+  const husk = out.card.find((meal) => /псилл/i.test(meal.name))!;
+  const milk = out.card.find((meal) => /молоко/i.test(meal.name))!;
+  assert.equal(gramsOf(cottage.name), 300);
+  assert.equal(cottage.kcal, 255);
+  assert.equal(cottage.protein, 54);
+  assert.equal(cottage.carbs, 9.9);
+  assert.equal(cottage.nutritionBasis, "estimate");
+  assert.equal(gramsOf(isolate.name), 30);
+  assert.ok((isolate.kcal ?? 0) >= 100 && (isolate.kcal ?? 0) <= 130);
+  assert.ok((isolate.protein ?? 0) >= 24 && (isolate.protein ?? 0) <= 30);
+  assert.equal(gramsOf(husk.name), 5);
+  assert.equal(husk.kcal, 10);
+  assert.equal(gramsOf(milk.name), 100);
+  assert.ok((milk.kcal ?? 0) >= 44 && (milk.kcal ?? 0) <= 55);
 });
 
 test("окорочок: «на 100 г 240» не затирает порцию ~300 г ≈ 740 ккал", async () => {

@@ -217,6 +217,10 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     portionGrams: 150,
   },
   {
+    // Этикетка обезжиренного творога «Серышевский»: 85 ккал, белки 18,0 г, углеводы 3,3 г на 100 г.
+    // ГОСТ 31453 даёт потолок жира «не более 1,8 г», это не типичное содержание.
+    // 4×18 + 4×3,3 = 85,2 ккал — почти вся энергия этикетки, поэтому жир ~0,6 г, а не 1,8
+    // (1,8 г дали бы ~101 ккал и разошлись бы с этикеткой). 300 г → 255 ккал, Б 54, У 9,9.
     keys: [
       "творог обезжиренный",
       "обезжиренный творог",
@@ -229,11 +233,11 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
       "творог 1%",
     ],
     dishName: "Творог обезжиренный",
-    calories: 110,
-    protein: 25,
-    fat: 0.5,
-    carbs: 3,
-    portionGrams: 150,
+    calories: 85,
+    protein: 18,
+    fat: 0.6,
+    carbs: 3.3,
+    portionGrams: 100,
   },
   { keys: ["салат", "салат овощной", "овощной салат"], dishName: "Салат овощной", calories: 90, protein: 2, fat: 7, carbs: 4, fiber: 2, portionGrams: 150 },
   { keys: ["цезарь", "салат цезарь"], dishName: "Салат Цезарь", calories: 420, protein: 22, fat: 28, carbs: 18, portionGrams: 250 },
@@ -895,6 +899,26 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     fat: 1,
     carbs: 3,
     sugar: 2,
+    portionGrams: 100,
+  },
+  {
+    // Шелуха подорожника. На этикетках ~80 г клетчатки и ~200 ккал на 100 г,
+    // если волокна считают по 2 ккал/г (общие факторы Атуотера), а не обнуляют.
+    // Ориентир: ~20 ккал на 10 г. Порция 5 г — 10 ккал, не 0.
+    keys: [
+      "псиллиум",
+      "псилиум",
+      "шелуха подорожника",
+      "клетчатка псиллиум",
+      "psyllium",
+      "psyllium husk",
+    ],
+    dishName: "Псиллиум",
+    calories: 200,
+    protein: 2,
+    fat: 0.5,
+    carbs: 3.4,
+    fiber: 80,
     portionGrams: 100,
   },
   {
