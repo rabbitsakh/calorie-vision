@@ -137,6 +137,18 @@ export function programById(id: string): GymProgram | null {
   return GYM_PROGRAMS.find((program) => program.id === id) ?? null;
 }
 
+/** Имена упражнений каждого дня программ — для сравнения с прошлой тренировкой. */
+export function programDayExerciseNames(): string[][] {
+  const names: string[][] = [];
+  for (const program of GYM_PROGRAMS) {
+    for (const day of program.days) {
+      const draft = routineDraftFromDay(day);
+      if (draft) names.push(draft.exercises.map((exercise) => exercise.name));
+    }
+  }
+  return names;
+}
+
 export function routineDraftFromDay(day: ProgramDay): RoutineDraft | null {
   const exercises: RoutineDraft["exercises"] = [];
   const muscles = new Set<MuscleGroupKey>();

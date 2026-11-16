@@ -5,8 +5,8 @@ import { ExerciseAddSheet } from "@/components/workouts/ExerciseAddSheet";
 import { ExerciseHistorySheet, type ExerciseHistoryBundle } from "@/components/workouts/ExerciseHistorySheet";
 import { ExerciseRow } from "@/components/workouts/ExerciseRow";
 import type { OverflowMenuItem } from "@/components/workouts/OverflowMenu";
-import { OverflowMenu } from "@/components/workouts/OverflowMenu";
 import { RestTimer } from "@/components/workouts/RestTimer";
+import { WorkoutLiveHeader } from "@/components/workouts/WorkoutLiveHeader";
 import { WorkoutRestTimerBanner } from "@/components/workouts/WorkoutRestTimer";
 import { SessionSheet } from "@/components/workouts/SessionSheet";
 import { SetTable, type SetTableFields } from "@/components/workouts/SetTable";
@@ -34,6 +34,7 @@ import {
   kindUsesRestTimer,
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
+import { buildLiveHeaderView, formatExerciseTonnage, type LiveCompare } from "@/lib/workouts/live-header";
 import { sessionElapsedSec } from "@/lib/workouts/session-clock";
 import {
   estimateSessionEnergy,
@@ -254,6 +255,7 @@ const CLOCK_HINT: Record<NonNullable<SessionDetail["clockStatus"]>, string> = {
 export type WorkoutActiveSessionProps = {
   detail: SessionDetail;
   progress: Progress | null;
+  compare?: LiveCompare | null;
   todayKey: string;
   progressLine: string | null;
   showSummary: boolean;
@@ -353,6 +355,7 @@ export type WorkoutActiveSessionProps = {
 export function WorkoutActiveSession({
   detail,
   progress,
+  compare = null,
   todayKey,
   progressLine,
   showSummary,
@@ -469,6 +472,33 @@ export function WorkoutActiveSession({
       })),
     });
   }, [bodyWeightKg, detail, liveElapsedLabel]);
+  const liveElapsedSec = sessionElapsedSec({
+    startedAt: detail.startedAt ?? null,
+    endedAt: detail.endedAt ?? null,
+    pausedAt: detail.pausedAt ?? null,
+    pausedMs: detail.pausedMs ?? 0,
+  });
+  const headerView = useMemo(
+    () =>
+      buildLiveHeaderView({
+        elapsedSec: liveElapsedSec,
+        prCount: detail.prHits?.length ?? 0,
+        previous: compare
+          ? { tonnage: compare.previousTonnage, elapsedSec: compare.previousElapsedSec }
+          : null,
+        exercises: detail.exercises.map((ex) => {
+          const goal = bestAndTarget(ex, detail.progressRate, historyByName[ex.name]);
+          return {
+            kind: ex.kind,
+            sets: ex.sets,
+            lastSetCount: ex.lastTime?.sets.length ?? 0,
+            bestKg: goal.best,
+            targetKg: goal.target,
+          };
+        }),
+      }),
+    [compare, detail, historyByName, liveElapsedSec],
+  );
   const liveEnergyLabel =
     liveEnergy && liveEnergy.kcal > 0 ? formatSessionEnergyKcal(liveEnergy) : null;
   const liveEnergyCaption =
@@ -792,53 +822,48 @@ export function WorkoutActiveSession({
         />
       ) : null}
 
-      <div className="gym-live-bar">
-        <button type="button" className="gym-live-bar__back" aria-label="К списку" onClick={leave}>
-          ←
-        </button>
-        <button
-          type="button"
-          className="gym-live-bar__clock"
-          aria-label={
-            liveEnergyLabel ? `Время тренировки, расход ${liveEnergyLabel}` : "Время тренировки"
-          }
-          onClick={() => {
-            if (clock === "idle") void patchClock("start");
-          }}
-        >
-          <strong>{liveElapsedLabel}</strong>
-          <span>
-            {CLOCK_HINT[clock].toLowerCase()}
-            {liveEnergyLabel ? ` · ${liveEnergyLabel}` : ""}
-            {detail.muscleLabels.length ? ` · ${detail.muscleLabels.join(" · ")}` : ""}
-            {detail.cardioOnly && progressLine ? ` · ${progressLine}` : ""}
-            {detail.date !== todayKey ? " · задним числом" : ""}
-          </span>
-        </button>
-        {clock === "finished" ? (
-          <button type="button" className="gym-finish" onClick={() => setShowSummary(true)}>
-            Итог
-          </button>
-        ) : (
-          <button type="button" className="gym-finish" onClick={() => void patchClock("finish")}>
-            Завершить
-          </button>
-        )}
-        <OverflowMenu label="Действия тренировки" items={workoutMenu} />
-      </div>
-      {!detail.cardioOnly && clock !== "finished" && !restEndsAt ? (
-        <RestTimer
-          restSeconds={restSeconds}
-          setRestSeconds={setRestSeconds}
-          restEndsAt={restEndsAt}
-          restLeft={restLeft}
-          restSound={restSound}
-          setRestSound={setRestSound}
-          startRest={startRest}
-          clearRest={clearRest}
-          options={restOptions}
-        />
-      ) : null}
+      <WorkoutLiveHeader
+        elapsedLabel={liveElapsedLabel}
+        subtitle={[
+          CLOCK_HINT[clock].toLowerCase(),
+          liveEnergyLabel,
+          detail.muscleLabels.length ? detail.muscleLabels.join(" · ") : null,
+          detail.cardioOnly && progressLine ? progressLine : null,
+          detail.date !== todayKey ? "задним числом" : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+        clockAria={
+          liveEnergyLabel ? `Время тренировки, расход ${liveEnergyLabel}` : "Время тренировки"
+        }
+        onClockClick={() => {
+          if (clock === "idle") void patchClock("start");
+        }}
+        view={headerView}
+        onBack={leave}
+        finishLabel={clock === "finished" ? "Итог" : "Завершить"}
+        onFinish={() => {
+          if (clock === "finished") setShowSummary(true);
+          else void patchClock("finish");
+        }}
+        menu={workoutMenu}
+        rest={
+          !detail.cardioOnly && clock !== "finished" && !restEndsAt ? (
+            <RestTimer
+              compact
+              restSeconds={restSeconds}
+              setRestSeconds={setRestSeconds}
+              restEndsAt={restEndsAt}
+              restLeft={restLeft}
+              restSound={restSound}
+              setRestSound={setRestSound}
+              startRest={startRest}
+              clearRest={clearRest}
+              options={restOptions}
+            />
+          ) : null
+        }
+      />
 
       {prToast ? (
         <div
@@ -1035,6 +1060,7 @@ export function WorkoutActiveSession({
                   ? `${counts.label} · круг ${circuitRound}`
                   : counts.label
               }
+              loadLabel={formatExerciseTonnage(ex.load)}
                 bestTarget={bestTarget}
                 lastLine={null}
                 expanded={expanded}

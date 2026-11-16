@@ -4,11 +4,18 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExerciseRow } from "@/components/workouts/ExerciseRow";
 import { MobileTabBar } from "@/components/MobileTabBar";
-import { OverflowMenu } from "@/components/workouts/OverflowMenu";
+import { RestTimer } from "@/components/workouts/RestTimer";
 import { SetTable } from "@/components/workouts/SetTable";
+import { WorkoutLiveHeader } from "@/components/workouts/WorkoutLiveHeader";
 import { WorkoutRestTimerBanner } from "@/components/workouts/WorkoutRestTimer";
 import { buildSetTableRows, type SetTableRowModel } from "@/lib/workouts/active-set-table";
 import type { SetTableFields } from "@/components/workouts/SetTable";
+import {
+  buildLiveHeaderView,
+  formatExerciseTonnage,
+  type LiveHeaderExercise,
+} from "@/lib/workouts/live-header";
+import { exerciseLoad } from "@/lib/workouts/load";
 
 function movePreviewRow(
   rows: SetTableRowModel[],
@@ -31,10 +38,48 @@ const LAST = [
   { weightKg: 80, reps: 6 },
 ];
 
+const done = (weightKg: number, reps: number, setType = "working") => ({
+  weightKg,
+  reps,
+  setType,
+  completed: true as const,
+});
+
+const PREVIEW_EXERCISES: LiveHeaderExercise[] = [
+  {
+    kind: "strength",
+    lastSetCount: 8,
+    bestKg: 100,
+    targetKg: 105,
+    sets: [done(40, 10, "warmup"), ...Array.from({ length: 6 }, () => done(100, 8)), done(105, 8)],
+  },
+  {
+    kind: "strength",
+    lastSetCount: 8,
+    bestKg: 140,
+    targetKg: 147,
+    sets: Array.from({ length: 4 }, () => done(140, 5)),
+  },
+];
+
+const PREVIEW_HEADER = buildLiveHeaderView({
+  exercises: PREVIEW_EXERCISES,
+  previous: { tonnage: 7900, elapsedSec: 40 * 60 },
+  elapsedSec: 34 * 60 + 15,
+  prCount: 1,
+});
+
+const PREVIEW_LOADS = PREVIEW_EXERCISES.map((exercise) =>
+  formatExerciseTonnage(
+    exerciseLoad({ kind: exercise.kind, sets: exercise.sets.map((set) => ({ ...set })) }),
+  ),
+);
+
 export function GymActivePreview() {
   const params = useSearchParams();
   const dark = params.get("theme") === "dark";
   const rest = params.get("rest") !== "0";
+  const [restSeconds, setRestSeconds] = useState(90);
   const [rows, setRows] = useState(() =>
     buildSetTableRows({
       kind: "strength",
@@ -72,35 +117,44 @@ export function GymActivePreview() {
   return (
     <div className="gym-preview">
       <div className={`gym-preview__body${dark ? " gym-force-dark" : ""}`}>
-      <div className="gym-session-scene gym-preview__main">
-        <div className="gym-live-bar">
-          <button type="button" className="gym-live-bar__back" aria-label="К списку">
-            ←
-          </button>
-          <div className="gym-live-bar__clock">
-            <strong>24:18</strong>
-            <span>идёт · ~320 ккал · грудь</span>
-          </div>
-          <button type="button" className="gym-finish">
-            Завершить
-          </button>
-          <OverflowMenu
-            label="Действия тренировки"
-            items={[
-              { key: "pause", label: "Пауза", onClick: () => {} },
-              { key: "note", label: "Заметка", onClick: () => {} },
-            ]}
-          />
-        </div>
+      <div className="gym-session-scene gym-preview__main" data-layout-card>
+        <WorkoutLiveHeader
+          elapsedLabel="34:15"
+          subtitle="идёт · 183 ккал · Ноги"
+          clockAria="Время тренировки, расход 183 ккал"
+          view={PREVIEW_HEADER}
+          onBack={() => {}}
+          finishLabel="Завершить"
+          onFinish={() => {}}
+          menu={[
+            { key: "pause", label: "Пауза", onClick: () => {} },
+            { key: "note", label: "Заметка", onClick: () => {} },
+          ]}
+          rest={
+            <RestTimer
+              compact
+              restSeconds={restSeconds}
+              setRestSeconds={setRestSeconds}
+              restEndsAt={null}
+              restLeft={0}
+              restSound={false}
+              setRestSound={() => {}}
+              startRest={() => {}}
+              clearRest={() => {}}
+              options={[60, 90, 120, 180]}
+            />
+          }
+        />
 
         <div className="gym-ss">
           <div className="gym-ss__rail" aria-hidden />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <p className="gym-ss__label">Суперсет · 1 из 2</p>
             <ExerciseRow
-              name="Жим лёжа"
-              muscle="Грудь · было 80, цель 82.5"
-              doneLabel="2/4"
+              name="Присед"
+              muscle="Ноги · 100 → 105"
+              doneLabel="8/8"
+              loadLabel={PREVIEW_LOADS[0]}
               bestTarget={null}
               expanded
               superset={null}
@@ -124,9 +178,10 @@ export function GymActivePreview() {
             </ExerciseRow>
             <p className="gym-ss__label">Суперсет · 2 из 2 · следом</p>
             <ExerciseRow
-              name="Разводка гантелей"
-              muscle="0/3 · после жима"
-              doneLabel="0/3"
+              name="Жим ногами"
+              muscle="Ноги · 140 → 147"
+              doneLabel="4/8"
+              loadLabel={PREVIEW_LOADS[1]}
               bestTarget={null}
               expanded={false}
               superset={null}

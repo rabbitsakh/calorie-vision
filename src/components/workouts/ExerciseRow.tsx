@@ -7,6 +7,8 @@ type Props = {
   name: string;
   muscle: string | null;
   doneLabel: string;
+  /** Тоннаж упражнения, мелко у счётчика «8/8». */
+  loadLabel?: string | null;
   bestTarget: string | null;
   lastLine?: string | null;
   expanded: boolean;
@@ -22,6 +24,7 @@ export function ExerciseRow({
   name,
   muscle,
   doneLabel,
+  loadLabel = null,
   bestTarget,
   lastLine = null,
   expanded,
@@ -54,6 +57,7 @@ export function ExerciseRow({
           {meta ? <span className="mt-0.5 truncate text-xs text-[var(--muted)]">{meta}</span> : null}
           {lastLine ? <span className="gym-last-time">{lastLine}</span> : null}
         </button>
+        {loadLabel ? <span className="gym-ex__load">{loadLabel}</span> : null}
         <span className="gym-ex__count">{doneLabel}</span>
         <OverflowMenu label={`Действия: ${name}`} items={menu} />
       </div>
