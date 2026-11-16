@@ -70,10 +70,10 @@ export function GymActivePreview() {
   };
 
   return (
-    <div className="gym-preview">
-      <div className={`gym-preview__body${dark ? " gym-force-dark" : ""}`}>
-      <div className="gym-session-scene gym-preview__main">
-        <div className="gym-live-bar">
+    <div className={`cv-app-frame${dark ? " gym-force-dark" : ""}`}>
+      <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-1.5 px-2.5 py-1.5">
+        <div className="gym-session-scene">
+          <div className="gym-live-bar">
           <button type="button" className="gym-live-bar__back" aria-label="К списку">
             ←
           </button>
@@ -91,9 +91,9 @@ export function GymActivePreview() {
               { key: "note", label: "Заметка", onClick: () => {} },
             ]}
           />
-        </div>
+          </div>
 
-        <div className="gym-ss">
+          <div className="gym-ss">
           <div className="gym-ss__rail" aria-hidden />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <p className="gym-ss__label">Суперсет · 1 из 2</p>
@@ -136,21 +136,17 @@ export function GymActivePreview() {
           </div>
         </div>
       </div>
-        {rest ? (
-          <div className="gym-rest-slot">
-            <WorkoutRestTimerBanner
-              restEndsAt={Date.now() + 42_000}
-              restLeft={42}
-              restSeconds={90}
-              onSkip={() => {}}
-              onAdd={() => {}}
-            />
-          </div>
-        ) : null}
-      </div>
-      <div className="gym-preview__tabs">
-        <MobileTabBar showAdd={false} />
-      </div>
+      </main>
+      {rest ? (
+        <WorkoutRestTimerBanner
+          restEndsAt={Date.now() + 42_000}
+          restLeft={42}
+          restSeconds={90}
+          onSkip={() => {}}
+          onAdd={() => {}}
+        />
+      ) : null}
+      <MobileTabBar showAdd={false} />
     </div>
   );
 }

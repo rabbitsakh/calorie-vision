@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   fieldNeedsScroll,
   inputModeForColumn,
@@ -437,6 +438,12 @@ function SetMenu({
   onCycleType: () => void;
   onClose: () => void;
 }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -450,7 +457,11 @@ function SetMenu({
     fn();
   };
 
-  return (
+  if (!mounted) return null;
+
+  // Вне сцены: её transform и overflow не запирают меню под таймер отдыха.
+  const root = document.querySelector(".cv-app-frame") ?? document.documentElement;
+  return createPortal(
     <>
       <button type="button" className="gym-set-sheet__backdrop" aria-label="Закрыть меню" onClick={onClose} />
       <div className="gym-set-sheet" role="dialog" aria-label={`Подход ${row.number}`}>
@@ -471,6 +482,7 @@ function SetMenu({
           Удалить подход
         </button>
       </div>
-    </>
+    </>,
+    root,
   );
 }
