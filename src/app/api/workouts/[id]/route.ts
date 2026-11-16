@@ -12,7 +12,9 @@ import {
   parseProgressRate,
   type SessionLikeForProgress,
 } from "@/lib/workouts/load";
+import { pickPreviousWorkout } from "@/lib/workouts/live-header";
 import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
+import { programDayExerciseNames } from "@/lib/workouts/programs";
 import {
   serializeSessionDetail,
   serializeSessionSummary,
@@ -45,12 +47,18 @@ async function loadOwnedSession(userId: string, id: string) {
 }
 
 async function withProgress(userId: string, detail: ReturnType<typeof serializeSessionDetail>) {
-  const history = await prisma.workoutSession.findMany({
-    where: { userId },
-    include: sessionInclude,
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    take: 60,
-  });
+  const [history, routines] = await Promise.all([
+    prisma.workoutSession.findMany({
+      where: { userId },
+      include: sessionInclude,
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take: 60,
+    }),
+    prisma.workoutRoutine.findMany({
+      where: { userId },
+      select: { exercises: { select: { name: true } } },
+    }),
+  ]);
   const summaries = history.map(serializeSessionSummary);
   const prev = findPreviousSession(toProgressRows(summaries), detail.muscleKeys, {
     excludeSessionId: detail.id,
@@ -61,6 +69,36 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
     previous: prev,
     progressRate: detail.progressRate,
   });
+  const picked = pickPreviousWorkout({
+    currentId: detail.id,
+    muscleKeys: detail.muscleKeys,
+    exerciseNames: detail.exercises.map((exercise) => exercise.name),
+    templateExerciseNames: [
+      ...routines.map((routine) => routine.exercises.map((exercise) => exercise.name)),
+      ...programDayExerciseNames(),
+    ],
+    history: history.map((row, index) => {
+      const summary = summaries[index]!;
+      return {
+        id: summary.id,
+        date: summary.date,
+        createdAt: summary.createdAt,
+        muscleKeys: summary.muscleKeys,
+        totalLoad: summary.totalLoad,
+        elapsedSec: summary.elapsedSec,
+        finished: summary.endedAt != null,
+        exerciseNames: row.exercises.map((exercise) => exercise.name),
+      };
+    }),
+  });
+  const compare = picked
+    ? {
+        matchedBy: picked.matchedBy,
+        previousTonnage: picked.previousTonnage,
+        previousElapsedSec: picked.previousElapsedSec,
+        previousDate: picked.previousDate,
+      }
+    : null;
 
   const historyIndex = buildExerciseHistoryIndex(history, { excludeSessionId: detail.id });
   const exercises = detail.exercises.map((ex) => {
@@ -94,6 +132,7 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
   return {
     session: { ...detail, exercises, prHits },
     progress,
+    compare,
   };
 }
 

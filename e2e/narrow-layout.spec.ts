@@ -166,6 +166,46 @@ test.describe("узкие экраны, тёмная тема", () => {
       await assertDayCardBlocksFillWidth(page);
     });
 
+    test(`Шапка тренировки ${width}px не разъезжается`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.goto("/dev/gym-active-preview?theme=dark&rest=0");
+      const head = page.locator("[data-gym-header]");
+      await expect(head).toBeVisible();
+      await expect(head.getByText("34:15")).toBeVisible();
+      await expect(head.getByText("183 ккал")).toBeVisible();
+      await expect(head.getByText("8,4 т")).toBeVisible();
+      await expect(head.getByText("было 7,9 т")).toBeVisible();
+      await expect(head.getByText("+6,8%")).toBeVisible();
+      await expect(head.getByText("12 из 16")).toBeVisible();
+      await expect(head.getByText("−6 мин")).toBeVisible();
+      await expect(head.getByText("Прогрессия 1 из 2")).toBeVisible();
+      await expect(head.getByText("🏆 1")).toBeVisible();
+      await expect(head.getByRole("button", { name: /Отдых 1:30/ })).toBeVisible();
+      await expect(page.getByText("5,6 т")).toBeVisible();
+      const overflow = await head.evaluate((el) => {
+        const issues: string[] = [];
+        const pageWidth = window.innerWidth;
+        const box = el.getBoundingClientRect();
+        if (box.left < -1 || box.right > pageWidth + 1) {
+          issues.push(`шапка ${Math.round(box.left)}…${Math.round(box.right)} при ${pageWidth}`);
+        }
+        for (const child of el.querySelectorAll(".gym-live-bar, .gym-live-sub, .gym-live-compare, .gym-live-goal")) {
+          if (child.scrollWidth > child.clientWidth + 1) {
+            const text = (child.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+            issues.push(`«${text}» шире строки`);
+          }
+          const rect = child.getBoundingClientRect();
+          if (rect.right > pageWidth + 1 || rect.left < -1) {
+            issues.push(`строка вылезает за экран`);
+          }
+        }
+        return issues;
+      });
+      expect(overflow, overflow.join("\n")).toEqual([]);
+      await assertNoHorizontalOverflow(page);
+    });
+
     test(`Зал ${width}px не разъезжается`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.emulateMedia({ colorScheme: "dark" });

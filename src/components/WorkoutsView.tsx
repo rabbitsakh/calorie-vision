@@ -37,6 +37,7 @@ import {
 } from "@/lib/workouts/live-session";
 import { monthEndKey } from "@/lib/workouts/trends";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
+import type { LiveCompare } from "@/lib/workouts/live-header";
 import {
   COPY_PREVIOUS_SESSION_DEFAULT,
   shouldRepeatPreviousSession,
@@ -419,6 +420,7 @@ export function WorkoutsView({
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [deletedSets, setDeletedSets] = useState<DeletedSetUndo[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
+  const [compare, setCompare] = useState<LiveCompare | null>(null);
   const [creating, setCreating] = useState(false);
   /** Opened via «+» → Тренировка (`?new=1`). */
   const [fromPlusMenu, setFromPlusMenu] = useState(false);
@@ -766,6 +768,7 @@ export function WorkoutsView({
         remember(session.clockStatus);
         setDetail(session);
         setProgress(null);
+        setCompare(null);
         setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
         setShowSummary(session.clockStatus === "finished");
         setCircuitRound(1);
@@ -784,12 +787,15 @@ export function WorkoutsView({
       }
 
       try {
-        const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-          await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
-        );
+        const data = await readJson<{
+          session: SessionDetail;
+          progress: Progress;
+          compare?: LiveCompare | null;
+        }>(await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }));
         remember(data.session.clockStatus);
         setDetail(data.session);
         setProgress(data.progress);
+        setCompare(data.compare ?? null);
         setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
         setShowSummary(false);
         setCircuitRound(1);
@@ -1087,7 +1093,11 @@ export function WorkoutsView({
       return;
     }
     try {
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+      const data = await readJson<{
+        session: SessionDetail;
+        progress: Progress;
+        compare?: LiveCompare | null;
+      }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1100,6 +1110,7 @@ export function WorkoutsView({
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setCompare(data.compare ?? null);
       void loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить время");
@@ -1178,7 +1189,11 @@ export function WorkoutsView({
     }
 
     try {
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+      const data = await readJson<{
+        session: SessionDetail;
+        progress: Progress;
+        compare?: LiveCompare | null;
+      }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1187,6 +1202,7 @@ export function WorkoutsView({
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setCompare(data.compare ?? null);
       if (clock === "start" || clock === "resume" || clock === "pause" || clock === "finish") {
         quietGymNudgeForToday(clock !== "finish");
       }
@@ -1414,11 +1430,14 @@ export function WorkoutsView({
   const refreshDetail = useCallback(
     async (session: SessionDetail) => {
       setDetail(session);
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-        await fetch(withBasePath(`/api/workouts/${session.id}`), { cache: "no-store" }),
-      );
+      const data = await readJson<{
+        session: SessionDetail;
+        progress: Progress;
+        compare?: LiveCompare | null;
+      }>(await fetch(withBasePath(`/api/workouts/${session.id}`), { cache: "no-store" }));
       setDetail(data.session);
       setProgress(data.progress);
+      setCompare(data.compare ?? null);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
       setSetDrafts((prev) => {
         const next = { ...prev };
@@ -1474,7 +1493,11 @@ export function WorkoutsView({
     // Finish after sets so server tonnage includes offline approaches.
     for (const item of finishes) {
       try {
-        const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        const data = await readJson<{
+          session: SessionDetail;
+          progress: Progress;
+          compare?: LiveCompare | null;
+        }>(
           await fetch(withBasePath(`/api/workouts/${item.sessionId}`), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -1485,6 +1508,7 @@ export function WorkoutsView({
         saved += 1;
         lastSession = data.session;
         setProgress(data.progress);
+        setCompare(data.compare ?? null);
       } catch {
         break;
       }
@@ -1539,11 +1563,14 @@ export function WorkoutsView({
         return;
       }
       try {
-        const data = await readJson<{ session: SessionDetail; progress?: Progress }>(
-          await fetch(withBasePath(`/api/workouts/${activeId}`)),
-        );
+        const data = await readJson<{
+          session: SessionDetail;
+          progress?: Progress;
+          compare?: LiveCompare | null;
+        }>(await fetch(withBasePath(`/api/workouts/${activeId}`)));
         await refreshDetail(data.session);
         if (data.progress) setProgress(data.progress);
+        if ("compare" in data) setCompare(data.compare ?? null);
       } catch {
         void loadList();
       }
@@ -2292,7 +2319,11 @@ export function WorkoutsView({
   const saveSessionNote = async (note: string) => {
     if (!detail) return;
     try {
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+      const data = await readJson<{
+        session: SessionDetail;
+        progress: Progress;
+        compare?: LiveCompare | null;
+      }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -2301,6 +2332,7 @@ export function WorkoutsView({
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setCompare(data.compare ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить заметку");
     }
@@ -2321,7 +2353,11 @@ export function WorkoutsView({
       return;
     }
     try {
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+      const data = await readJson<{
+        session: SessionDetail;
+        progress: Progress;
+        compare?: LiveCompare | null;
+      }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -2330,6 +2366,7 @@ export function WorkoutsView({
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setCompare(data.compare ?? null);
       void loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сменить дату");
@@ -2556,6 +2593,7 @@ export function WorkoutsView({
       setDetail(null);
       setActiveId(null);
       setProgress(null);
+      setCompare(null);
       clearRest();
       await loadList();
       return;
@@ -2566,6 +2604,7 @@ export function WorkoutsView({
       setDetail(null);
       setActiveId(null);
       setProgress(null);
+      setCompare(null);
       clearRest();
       await loadList();
     } catch (err) {
@@ -2598,6 +2637,7 @@ export function WorkoutsView({
       <WorkoutActiveSession
         detail={displayDetail}
         progress={progress}
+        compare={compare}
         todayKey={todayKey}
         progressLine={progressLine}
         showSummary={showSummary}
@@ -2646,6 +2686,7 @@ export function WorkoutsView({
           setActiveId(null);
           setDetail(null);
           setProgress(null);
+          setCompare(null);
           clearRest();
           void loadList();
         }}
@@ -2656,6 +2697,7 @@ export function WorkoutsView({
           setActiveId(null);
           setDetail(null);
           setProgress(null);
+          setCompare(null);
           clearRest();
           router.push(withBasePath("/ration"));
         }}
