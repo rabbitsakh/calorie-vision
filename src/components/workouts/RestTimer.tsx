@@ -15,6 +15,8 @@ type Props = {
   startRest: (sec?: number) => void;
   clearRest: () => void;
   options: readonly number[];
+  /** В строке шапки: те же действия, меньше места. */
+  compact?: boolean;
 };
 
 /**
@@ -30,6 +32,7 @@ export function RestTimer({
   startRest,
   clearRest,
   options,
+  compact = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [box, setBox] = useState<{ top: number; left: number } | null>(null);
@@ -85,7 +88,11 @@ export function RestTimer({
       <button
         ref={buttonRef}
         type="button"
-        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-xl px-3 text-sm font-semibold tabular-nums ${
+        className={`inline-flex items-center justify-center gap-1 font-semibold tabular-nums ${
+          compact
+            ? "h-8 min-h-8 min-w-11 rounded-full px-2 text-xs"
+            : "min-h-[44px] min-w-[44px] rounded-xl px-3 text-sm"
+        } ${
           running
             ? "bg-[var(--accent)] text-white"
             : "border border-[var(--border-quiet)] bg-white text-[var(--foreground)]"

@@ -69,6 +69,37 @@ async function assertNoHorizontalOverflow(page: Page) {
   expect(issues, issues.join("\n")).toEqual([]);
 }
 
+/** Полоса ккал, строки БЖУ, идеи, «Вода» и «Зал» внутри карточки дня. */
+async function assertDayCardBlocksFillWidth(page: Page) {
+  const issues = await page.evaluate(() => {
+    const card = document.querySelector("[data-testid='moment-hero']");
+    if (!(card instanceof HTMLElement)) return ["нет карточки дня"];
+    const style = getComputedStyle(card);
+    const contentWidth =
+      card.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+    const blocks = [
+      ...card.querySelectorAll(".moment-kcal-scale, .moment-macro, .moment-meal-idea, .moment-chip"),
+    ].filter((el): el is HTMLElement => el instanceof HTMLElement);
+    const found: string[] = [];
+    if (blocks.length < 7) {
+      found.push(`видно ${blocks.length} блоков, нужны полоса ккал, строки БЖУ, идеи, вода и зал`);
+    }
+    for (const el of blocks) {
+      const width = el.getBoundingClientRect().width;
+      const ratio = contentWidth > 0 ? width / contentWidth : 0;
+      if (ratio < 0.9) {
+        const text = (el.getAttribute("aria-label") || el.textContent || el.className)
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 48);
+        found.push(`«${text}» ${Math.round(ratio * 100)}% ширины карточки`);
+      }
+    }
+    return found;
+  });
+  expect(issues, issues.join("\n")).toEqual([]);
+}
+
 test.describe("узкие экраны, тёмная тема", () => {
   for (const width of WIDTHS) {
     test(`Сегодня ${width}px не разъезжается`, async ({ page }) => {
@@ -114,6 +145,64 @@ test.describe("узкие экраны, тёмная тема", () => {
       await expect(page.getByLabel("Прогресс сундука")).toBeVisible();
       await expect(page.getByLabel("Вода")).toBeVisible();
       await expect(page.getByText(FAVORITES[0]!.name).first()).toBeVisible();
+      await assertNoHorizontalOverflow(page);
+    });
+
+    test(`карточка дня ${width}px на всю ширину`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.addInitScript(() => {
+        localStorage.setItem("cv_metrika_consent", "declined");
+      });
+      await page.goto("/dev/today-hero-preview/?theme=dark");
+      const card = page.getByTestId("moment-hero");
+      await expect(card).toBeVisible();
+      await expect(card.locator(".moment-kcal-scale")).toBeVisible();
+      await expect(card.locator(".moment-macro")).toHaveCount(3);
+      await expect(card.getByRole("button", { name: /Сырники льняные с клюквой/ })).toBeVisible();
+      await expect(card.getByRole("button", { name: /Протеин изолят/ })).toBeVisible();
+      await expect(card.getByRole("button", { name: /Стакан/ })).toBeVisible();
+      await expect(card.getByRole("link", { name: /Открыть/ })).toBeVisible();
+      await assertDayCardBlocksFillWidth(page);
+    });
+
+    test(`Шапка тренировки ${width}px не разъезжается`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.emulateMedia({ colorScheme: "dark" });
+      await page.goto("/dev/gym-active-preview?theme=dark&rest=0");
+      const head = page.locator("[data-gym-header]");
+      await expect(head).toBeVisible();
+      await expect(head.getByText("34:15")).toBeVisible();
+      await expect(head.getByText("183 ккал")).toBeVisible();
+      await expect(head.getByText("8,4 т")).toBeVisible();
+      await expect(head.getByText("было 7,9 т")).toBeVisible();
+      await expect(head.getByText("+6,8%")).toBeVisible();
+      await expect(head.getByText("12 из 16")).toBeVisible();
+      await expect(head.getByText("−6 мин")).toBeVisible();
+      await expect(head.getByText("Прогрессия 1 из 2")).toBeVisible();
+      await expect(head.getByText("🏆 1")).toBeVisible();
+      await expect(head.getByRole("button", { name: /Отдых 1:30/ })).toBeVisible();
+      await expect(page.getByText("5,6 т")).toBeVisible();
+      const overflow = await head.evaluate((el) => {
+        const issues: string[] = [];
+        const pageWidth = window.innerWidth;
+        const box = el.getBoundingClientRect();
+        if (box.left < -1 || box.right > pageWidth + 1) {
+          issues.push(`шапка ${Math.round(box.left)}…${Math.round(box.right)} при ${pageWidth}`);
+        }
+        for (const child of el.querySelectorAll(".gym-live-bar, .gym-live-sub, .gym-live-compare, .gym-live-goal")) {
+          if (child.scrollWidth > child.clientWidth + 1) {
+            const text = (child.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+            issues.push(`«${text}» шире строки`);
+          }
+          const rect = child.getBoundingClientRect();
+          if (rect.right > pageWidth + 1 || rect.left < -1) {
+            issues.push(`строка вылезает за экран`);
+          }
+        }
+        return issues;
+      });
+      expect(overflow, overflow.join("\n")).toEqual([]);
       await assertNoHorizontalOverflow(page);
     });
 

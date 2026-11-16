@@ -104,7 +104,8 @@ export const GYM_PROGRAMS: readonly GymProgram[] = [
         slots: [
           slot("squat", 4, 6),
           slot("rdl", 3, 8),
-          slot("leg-curl", 3, 10),
+          // В зале это сгибание делают сидя. Вариант «лёжа» остаётся в справочнике.
+          slot("leg-curl-seat", 3, 10),
           slot("calf-stand", 3, 12),
           slot("crunch", 3, 12),
         ],
@@ -135,6 +136,18 @@ export const GYM_PROGRAMS: readonly GymProgram[] = [
 
 export function programById(id: string): GymProgram | null {
   return GYM_PROGRAMS.find((program) => program.id === id) ?? null;
+}
+
+/** Имена упражнений каждого дня программ — для сравнения с прошлой тренировкой. */
+export function programDayExerciseNames(): string[][] {
+  const names: string[][] = [];
+  for (const program of GYM_PROGRAMS) {
+    for (const day of program.days) {
+      const draft = routineDraftFromDay(day);
+      if (draft) names.push(draft.exercises.map((exercise) => exercise.name));
+    }
+  }
+  return names;
 }
 
 export function routineDraftFromDay(day: ProgramDay): RoutineDraft | null {

@@ -5978,16 +5978,26 @@ button.profile-settings__door:disabled {
   box-shadow: var(--shadow-card);
 }
 
-/* Copy + mascot share one row so the CTA never slides under the art. */
+/* Mascot shares a row with the heading only, so bars and chips use the card width. */
 .moment-hero-body {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.moment-hero-head {
+  display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: flex-start;
   gap: 0.5rem;
 }
 
 .moment-hero-copy {
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
 }
 
 .moment-mascot {
@@ -6063,6 +6073,8 @@ button.profile-settings__door:disabled {
 }
 
 .moment-kcal-scale {
+  width: 100%;
+  max-width: 100%;
   height: 10px;
   margin-top: 0.65rem;
   overflow: hidden;
@@ -6078,6 +6090,8 @@ button.profile-settings__door:disabled {
 }
 
 .moment-protein-note {
+  width: 100%;
+  max-width: 100%;
   margin: 0.55rem 0 0;
   font-size: 0.9rem;
   font-weight: 700;
@@ -6086,6 +6100,8 @@ button.profile-settings__door:disabled {
 }
 
 .moment-hero-line {
+  width: 100%;
+  max-width: 100%;
   margin-top: 0.375rem;
   font-size: 0.975rem;
   font-weight: 600;
@@ -6117,6 +6133,8 @@ button.profile-settings__door:disabled {
 }
 
 .moment-hero-hint {
+  width: 100%;
+  max-width: 100%;
   margin-top: 0.625rem;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -6179,6 +6197,8 @@ button.profile-settings__door:disabled {
 }
 
 .moment-meal-ideas {
+  width: 100%;
+  max-width: 100%;
   margin-top: 0.75rem;
 }
 
@@ -6251,7 +6271,10 @@ button.profile-settings__door:disabled {
 
 .moment-chips {
   display: flex;
+  width: 100%;
+  max-width: 100%;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.4rem;
   margin-top: 0.75rem;
 }
@@ -6309,14 +6332,19 @@ button.profile-settings__door:disabled {
 
 .moment-macros {
   display: flex;
+  width: 100%;
+  max-width: 100%;
   margin-top: 0.75rem;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.375rem;
   min-width: 0;
 }
 
 .moment-macro {
   display: grid;
+  width: 100%;
+  max-width: 100%;
   grid-template-columns: 5.6rem minmax(1.5rem, 1fr) auto;
   align-items: center;
   gap: 0.45rem;
@@ -10409,12 +10437,19 @@ html[data-gym-live] .app-chrome {
   display: none;
 }
 
+.gym-live-head {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .gym-live-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 56px;
-  padding: 4px 0 2px;
+  min-height: 44px;
+  padding: 0;
 }
 
 .gym-live-bar__back,
@@ -10459,15 +10494,90 @@ html[data-gym-live] .app-chrome {
   white-space: nowrap;
 }
 
+.gym-live-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 32px;
+}
+
+.gym-live-sub__text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gym-live-compare,
+.gym-live-goal {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.gym-live-compare > span,
+.gym-live-goal > span {
+  flex: 0 0 auto;
+}
+
+.gym-live-compare__was,
+.gym-live-compare__time {
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.gym-live-compare__delta.is-up {
+  color: var(--success);
+}
+
+.gym-live-compare__delta.is-down {
+  color: color-mix(in srgb, var(--danger) 78%, var(--muted));
+}
+
+.gym-live-compare__delta.is-flat {
+  color: var(--muted);
+}
+
+.gym-live-goal {
+  color: var(--muted-strong);
+  font-weight: 700;
+}
+
+.gym-live-goal__pr {
+  color: var(--accent-streak);
+}
+
+@media (max-width: 389px) {
+  .gym-live-compare,
+  .gym-live-goal {
+    gap: 4px;
+    font-size: 11px;
+  }
+}
+
 .gym-finish {
   min-height: 44px;
   flex: 0 0 auto;
   border-radius: 14px;
   background: var(--accent-fill);
-  padding: 0 14px;
+  padding: 0 12px;
   color: var(--on-accent);
   font-size: 14px;
   font-weight: 750;
+  white-space: nowrap;
 }
 
 .gym-ss {
@@ -10505,6 +10615,17 @@ html[data-gym-live] .app-chrome {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent-ink);
+}
+
+.gym-ex__load {
+  display: flex;
+  align-items: center;
+  padding-right: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 .gym-sets__list {

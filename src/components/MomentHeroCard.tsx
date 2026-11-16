@@ -598,133 +598,135 @@ export function MomentHeroView({
         data-testid="moment-hero"
       >
         <div className="moment-hero-body">
-          <div className="moment-hero-copy">
-            <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
-            {moment.ringPct != null ? (
-              <div className="moment-ring-row">
-                <span className="moment-ring-wrap">
-                  <Ring pct={moment.ringPct} />
-                </span>
-                <div className="min-w-0">
-                  <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
-                  {moment.normSplit ? <p className="moment-hero-split">{moment.normSplit}</p> : null}
-                  {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+          <div className="moment-hero-head">
+            <div className="moment-hero-copy">
+              <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
+              {moment.ringPct != null ? (
+                <div className="moment-ring-row">
+                  <span className="moment-ring-wrap">
+                    <Ring pct={moment.ringPct} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
+                    {moment.normSplit ? <p className="moment-hero-split">{moment.normSplit}</p> : null}
+                    {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <p className="moment-hero-title">
-                  {moment.title.includes(" из ") ? (
-                    <>
-                      <span>{moment.title.slice(0, moment.title.indexOf(" из "))}</span>
-                      <span className="moment-hero-title-rest">из {moment.title.slice(moment.title.indexOf(" из ") + 4)}</span>
-                    </>
-                  ) : (
-                    moment.title
-                  )}
-                </p>
-                {moment.kcal && moment.normSplit ? (
-                  <p className="moment-hero-split">{moment.normSplit}</p>
-                ) : null}
-                {moment.kcal ? (
-                  <div
-                    className="moment-kcal-scale"
-                    role="meter"
-                    aria-valuemin={0}
-                    aria-valuemax={moment.kcal.target}
-                    aria-valuenow={Math.max(0, moment.kcal.eaten)}
-                    aria-label={moment.title}
-                  >
+              ) : (
+                <>
+                  <p className="moment-hero-title">
+                    {moment.title.includes(" из ") ? (
+                      <>
+                        <span>{moment.title.slice(0, moment.title.indexOf(" из "))}</span>
+                        <span className="moment-hero-title-rest">из {moment.title.slice(moment.title.indexOf(" из ") + 4)}</span>
+                      </>
+                    ) : (
+                      moment.title
+                    )}
+                  </p>
+                  {moment.kcal && moment.normSplit ? (
+                    <p className="moment-hero-split">{moment.normSplit}</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element -- static mascot still from /public */}
+            <img
+              className="moment-mascot"
+              src={withBasePath(mascotArtUrl(moment.mascot, resolveMascotSkin()))}
+              alt=""
+              aria-hidden
+            />
+          </div>
+          {moment.ringPct == null && moment.kcal ? (
+            <div
+              className="moment-kcal-scale"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={moment.kcal.target}
+              aria-valuenow={Math.max(0, moment.kcal.eaten)}
+              aria-label={moment.title}
+            >
+              <i
+                style={{
+                  width: `${Math.max(0, Math.min(100, Math.round((moment.kcal.eaten / moment.kcal.target) * 100)))}%`,
+                }}
+              />
+            </div>
+          ) : null}
+          {moment.ringPct == null && moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+          {moment.ringPct == null && !moment.kcal && moment.normSplit ? (
+            <p className="moment-hero-split">{moment.normSplit}</p>
+          ) : null}
+          {moment.macros ? (
+            <div className="moment-macros">
+              {moment.macros.map((m) => (
+                <div key={m.key} className="moment-macro">
+                  <span className="moment-macro-label">{m.label}</span>
+                  <span className="moment-macro-track">
                     <i
                       style={{
-                        width: `${Math.max(0, Math.min(100, Math.round((moment.kcal.eaten / moment.kcal.target) * 100)))}%`,
+                        width: `${Math.min(100, Math.round((m.value / m.target) * 100))}%`,
+                        background: MACRO_COLOR[m.key],
                       }}
                     />
-                  </div>
-                ) : null}
-                {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
-                {!moment.kcal && moment.normSplit ? (
-                  <p className="moment-hero-split">{moment.normSplit}</p>
-                ) : null}
-              </>
-            )}
-            {moment.macros ? (
-              <div className="moment-macros">
-                {moment.macros.map((m) => (
-                  <div key={m.key} className="moment-macro">
-                    <span className="moment-macro-label">{m.label}</span>
-                    <span className="moment-macro-track">
-                      <i
-                        style={{
-                          width: `${Math.min(100, Math.round((m.value / m.target) * 100))}%`,
-                          background: MACRO_COLOR[m.key],
-                        }}
-                      />
-                    </span>
-                    <span className="moment-macro-value">
-                      {m.value.toLocaleString("ru-RU")} из {m.target.toLocaleString("ru-RU")} г
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            {moment.proteinNote ? <p className="moment-protein-note">{moment.proteinNote}</p> : null}
-            {mealIdeas.length > 0 || ideasEmpty ? (
-              <div className="moment-meal-ideas" aria-label={mealIdeasLabel}>
-                <p className="moment-meal-ideas-label">{mealIdeasLabel}</p>
-                {mealIdeas.length > 0 ? (
-                  <div className="moment-meal-ideas-row">
-                    {mealIdeas.map((idea, i) => (
-                      <button
-                        key={`${idea.name}-${i}`}
-                        type="button"
-                        className="moment-meal-idea"
-                        disabled={addingIdea != null}
-                        onClick={() => onAddIdea?.(idea, i)}
-                      >
-                        <b>{addingIdea === i ? "…" : idea.name}</b>
-                        <span>{Math.round(idea.calories)} ккал</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="moment-meal-ideas-empty">На этот приём в остаток ничего не подошло</p>
-                )}
-                {ideaError ? <p className="moment-meal-ideas-error">{ideaError}</p> : null}
-              </div>
-            ) : null}
-            {moment.chips ? (
-              <div className="moment-chips">
-                {moment.chips.map((chip) =>
-                  chip.kind === "gym" ? (
-                    <Link key={chip.kind} href={withDateQuery("/workouts", selectedDate)} className="moment-chip">
-                      <span className="moment-chip-copy">
-                        <b>{chip.title}</b>
-                        <span>{chip.detail}</span>
-                      </span>
-                      <span className="moment-chip-action moment-chip-action--quiet">{chip.actionLabel}</span>
-                    </Link>
-                  ) : (
-                    <button key={chip.kind} type="button" className="moment-chip" onClick={() => onAction("water")}>
-                      <span className="moment-chip-copy">
-                        <b>{chip.title}</b>
-                        <span>{chip.detail}</span>
-                      </span>
-                      <span className="moment-chip-action">{chip.actionLabel}</span>
+                  </span>
+                  <span className="moment-macro-value">
+                    {m.value.toLocaleString("ru-RU")} из {m.target.toLocaleString("ru-RU")} г
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {moment.proteinNote ? <p className="moment-protein-note">{moment.proteinNote}</p> : null}
+          {mealIdeas.length > 0 || ideasEmpty ? (
+            <div className="moment-meal-ideas" aria-label={mealIdeasLabel}>
+              <p className="moment-meal-ideas-label">{mealIdeasLabel}</p>
+              {mealIdeas.length > 0 ? (
+                <div className="moment-meal-ideas-row">
+                  {mealIdeas.map((idea, i) => (
+                    <button
+                      key={`${idea.name}-${i}`}
+                      type="button"
+                      className="moment-meal-idea"
+                      disabled={addingIdea != null}
+                      onClick={() => onAddIdea?.(idea, i)}
+                    >
+                      <b>{addingIdea === i ? "…" : idea.name}</b>
+                      <span>{Math.round(idea.calories)} ккал</span>
                     </button>
-                  ),
-                )}
-              </div>
-            ) : null}
-            {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
-          </div>
-          {/* eslint-disable-next-line @next/next/no-img-element -- static mascot still from /public */}
-          <img
-            className="moment-mascot"
-            src={withBasePath(mascotArtUrl(moment.mascot, resolveMascotSkin()))}
-            alt=""
-            aria-hidden
-          />
+                  ))}
+                </div>
+              ) : (
+                <p className="moment-meal-ideas-empty">На этот приём в остаток ничего не подошло</p>
+              )}
+              {ideaError ? <p className="moment-meal-ideas-error">{ideaError}</p> : null}
+            </div>
+          ) : null}
+          {moment.chips ? (
+            <div className="moment-chips">
+              {moment.chips.map((chip) =>
+                chip.kind === "gym" ? (
+                  <Link key={chip.kind} href={withDateQuery("/workouts", selectedDate)} className="moment-chip">
+                    <span className="moment-chip-copy">
+                      <b>{chip.title}</b>
+                      <span>{chip.detail}</span>
+                    </span>
+                    <span className="moment-chip-action moment-chip-action--quiet">{chip.actionLabel}</span>
+                  </Link>
+                ) : (
+                  <button key={chip.kind} type="button" className="moment-chip" onClick={() => onAction("water")}>
+                    <span className="moment-chip-copy">
+                      <b>{chip.title}</b>
+                      <span>{chip.detail}</span>
+                    </span>
+                    <span className="moment-chip-action">{chip.actionLabel}</span>
+                  </button>
+                ),
+              )}
+            </div>
+          ) : null}
+          {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
         </div>
         {moment.cta && !chipCoversCta ? <div className="moment-hero-actions">{renderCta(moment.cta)}</div> : null}
       </section>

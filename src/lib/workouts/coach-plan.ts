@@ -29,7 +29,7 @@ export type CoachPoolItem = {
 export const COACH_POOL: readonly CoachPoolItem[] = [
   { catalogId: "squat", avoid: ["knee", "back"], load: "main" },
   { catalogId: "leg-press", avoid: ["knee"], load: "main" },
-  { catalogId: "leg-curl", avoid: [], load: "assist" },
+  { catalogId: "leg-curl-seat", avoid: [], load: "assist" },
   { catalogId: "hip-thrust", avoid: [], load: "main" },
   { catalogId: "rdl", avoid: ["back"], load: "main" },
   { catalogId: "lunge-db", avoid: ["knee"], load: "assist" },

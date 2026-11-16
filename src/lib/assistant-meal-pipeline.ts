@@ -268,7 +268,11 @@ export async function resolveAssistantTurnActions(opts: {
   }
 
   if (!opts.previewPending && actions?.meals?.length) {
-    const enriched = enrichUnsetMealNutrition(actions.meals, `${opts.userMessage}\n${reply}`);
+    const enriched = enrichUnsetMealNutrition(
+      actions.meals,
+      `${opts.userMessage}\n${reply}`,
+      opts.userMessage,
+    );
     const sanity = applyTextMealSanity(enriched);
     if (sanity.codes.length) {
       logAssistantMealSignal("nutrition-sanity", hashMealPhrase(opts.userMessage), sanity.codes);
