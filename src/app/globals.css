@@ -769,11 +769,19 @@ select {
   }
 
   .cv-app-main {
+    position: relative;
+    /* Выше слота таймера отдыха (0), ниже таб-бара (55). */
+    z-index: 1;
     flex: 1 1 auto;
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+  }
+
+  .gym-rest-slot {
+    position: relative;
+    z-index: 0;
   }
 
   .mobile-tab-bar {
@@ -10852,7 +10860,11 @@ html[data-gym-live] .app-chrome {
 
 .gym-set-sheet__backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  /* Не закрывает таб-бар: меню в портале выше кадра, вкладки остаются своими. */
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   z-index: 51;
   background: rgba(7, 26, 23, 0.28);
   animation: gym-fade-in 180ms ease-out;
@@ -10913,6 +10925,13 @@ html[data-gym-live] .app-chrome {
 .gym-rest-slot {
   flex: 0 0 auto;
   padding: 0 12px 10px;
+}
+
+/* Таймер живёт в кадре под таб-баром. Открытая шторка или модалка
+   остаётся сверху: отсчёт не останавливается, клики уходят в пункты меню. */
+html:has([role="dialog"]) .gym-rest-slot {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .gym-rest-bar {
@@ -10992,6 +11011,10 @@ html[data-gym-live] .app-chrome {
 }
 
 @media (min-width: 768px) {
+  .gym-set-sheet__backdrop {
+    bottom: 0;
+  }
+
   .gym-set-sheet {
     left: 50%;
     right: auto;
@@ -11079,8 +11102,10 @@ html[data-gym-live] .app-chrome {
 }
 
 @keyframes gym-screen-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+  /* Без transform: иначе сцена становится containing block и прячет
+     position:fixed меню под портал таймера отдыха. */
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

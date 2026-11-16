@@ -115,98 +115,93 @@ export function GymActivePreview() {
   };
 
   return (
-    <div className="gym-preview">
-      <div className={`gym-preview__body${dark ? " gym-force-dark" : ""}`}>
-      <div className="gym-session-scene gym-preview__main" data-layout-card>
-        <WorkoutLiveHeader
-          elapsedLabel="34:15"
-          subtitle="идёт · 183 ккал · Ноги"
-          clockAria="Время тренировки, расход 183 ккал"
-          view={PREVIEW_HEADER}
-          onBack={() => {}}
-          finishLabel="Завершить"
-          onFinish={() => {}}
-          menu={[
-            { key: "pause", label: "Пауза", onClick: () => {} },
-            { key: "note", label: "Заметка", onClick: () => {} },
-          ]}
-          rest={
-            <RestTimer
-              compact
-              restSeconds={restSeconds}
-              setRestSeconds={setRestSeconds}
-              restEndsAt={null}
-              restLeft={0}
-              restSound={false}
-              setRestSound={() => {}}
-              startRest={() => {}}
-              clearRest={() => {}}
-              options={[60, 90, 120, 180]}
-            />
-          }
-        />
-
-        <div className="gym-ss">
-          <div className="gym-ss__rail" aria-hidden />
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <p className="gym-ss__label">Суперсет · 1 из 2</p>
-            <ExerciseRow
-              name="Присед"
-              muscle="Ноги · 100 → 105"
-              doneLabel="8/8"
-              loadLabel={PREVIEW_LOADS[0]}
-              bestTarget={null}
-              expanded
-              superset={null}
-              menu={[{ key: "note", label: "Ещё", onClick: () => {} }]}
-              onToggle={() => {}}
-            >
-              <SetTable
-                kind="strength"
-                rows={rows}
-                addLabel="+ Подход"
-                onFieldChange={patch}
-                onCommit={patch}
-                onLog={() => {}}
-                onCycleType={() => {}}
-                onAddSet={() => {}}
-                onMoveSet={(setId, direction) => {
-                  setRows((current) => movePreviewRow(current, setId, direction));
-                }}
-                onDeleteSet={() => {}}
+    <div className={`cv-app-frame${dark ? " gym-force-dark" : ""}`}>
+      <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-1.5 px-2.5 py-1.5">
+        <div className="gym-session-scene" data-layout-card>
+          <WorkoutLiveHeader
+            elapsedLabel="34:15"
+            subtitle="идёт · 183 ккал · Ноги"
+            clockAria="Время тренировки, расход 183 ккал"
+            view={PREVIEW_HEADER}
+            onBack={() => {}}
+            finishLabel="Завершить"
+            onFinish={() => {}}
+            menu={[
+              { key: "pause", label: "Пауза", onClick: () => {} },
+              { key: "note", label: "Заметка", onClick: () => {} },
+            ]}
+            rest={
+              <RestTimer
+                compact
+                restSeconds={restSeconds}
+                setRestSeconds={setRestSeconds}
+                restEndsAt={null}
+                restLeft={0}
+                restSound={false}
+                setRestSound={() => {}}
+                startRest={() => {}}
+                clearRest={() => {}}
+                options={[60, 90, 120, 180]}
               />
-            </ExerciseRow>
-            <p className="gym-ss__label">Суперсет · 2 из 2 · следом</p>
-            <ExerciseRow
-              name="Жим ногами"
-              muscle="Ноги · 140 → 147"
-              doneLabel="4/8"
-              loadLabel={PREVIEW_LOADS[1]}
-              bestTarget={null}
-              expanded={false}
-              superset={null}
-              menu={[{ key: "note", label: "Ещё", onClick: () => {} }]}
-              onToggle={() => {}}
-            />
+            }
+          />
+
+          <div className="gym-ss">
+            <div className="gym-ss__rail" aria-hidden />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <p className="gym-ss__label">Суперсет · 1 из 2</p>
+              <ExerciseRow
+                name="Присед"
+                muscle="Ноги · 100 → 105"
+                doneLabel="8/8"
+                loadLabel={PREVIEW_LOADS[0]}
+                bestTarget={null}
+                expanded
+                superset={null}
+                menu={[{ key: "note", label: "Ещё", onClick: () => {} }]}
+                onToggle={() => {}}
+              >
+                <SetTable
+                  kind="strength"
+                  rows={rows}
+                  addLabel="+ Подход"
+                  onFieldChange={patch}
+                  onCommit={patch}
+                  onLog={() => {}}
+                  onCycleType={() => {}}
+                  onAddSet={() => {}}
+                  onMoveSet={(setId, direction) => {
+                    setRows((current) => movePreviewRow(current, setId, direction));
+                  }}
+                  onDeleteSet={() => {}}
+                />
+              </ExerciseRow>
+              <p className="gym-ss__label">Суперсет · 2 из 2 · следом</p>
+              <ExerciseRow
+                name="Жим ногами"
+                muscle="Ноги · 140 → 147"
+                doneLabel="4/8"
+                loadLabel={PREVIEW_LOADS[1]}
+                bestTarget={null}
+                expanded={false}
+                superset={null}
+                menu={[{ key: "note", label: "Ещё", onClick: () => {} }]}
+                onToggle={() => {}}
+              />
+            </div>
           </div>
         </div>
-      </div>
-        {rest ? (
-          <div className="gym-rest-slot">
-            <WorkoutRestTimerBanner
-              restEndsAt={Date.now() + 42_000}
-              restLeft={42}
-              restSeconds={90}
-              onSkip={() => {}}
-              onAdd={() => {}}
-            />
-          </div>
-        ) : null}
-      </div>
-      <div className="gym-preview__tabs">
-        <MobileTabBar showAdd={false} />
-      </div>
+      </main>
+      {rest ? (
+        <WorkoutRestTimerBanner
+          restEndsAt={Date.now() + 42_000}
+          restLeft={42}
+          restSeconds={90}
+          onSkip={() => {}}
+          onAdd={() => {}}
+        />
+      ) : null}
+      <MobileTabBar showAdd={false} />
     </div>
   );
 }
-
