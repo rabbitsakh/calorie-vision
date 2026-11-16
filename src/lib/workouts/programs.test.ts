@@ -62,6 +62,23 @@ test("канонические имена программ уверенно кл
   }
 });
 
+test("шаблон Ноги ставит сгибание сидя, лёжа остаётся отдельным упражнением", () => {
+  const split = GYM_PROGRAMS.find((program) => program.id === "split");
+  const legs = split?.days.find((day) => day.id === "legs");
+  assert.ok(legs);
+  assert.equal(
+    legs!.slots.some((item) => item.catalogId === "leg-curl-seat"),
+    true,
+  );
+  assert.equal(
+    legs!.slots.some((item) => item.catalogId === "leg-curl"),
+    false,
+  );
+  assert.equal(catalogById("leg-curl-seat")?.name, "Сгибание ног сидя в тренажёре");
+  assert.equal(catalogById("leg-curl")?.name, "Сгибание ног лёжа");
+  assert.equal(catalogById("leg-curl")?.primary[0], catalogById("leg-curl-seat")?.primary[0]);
+});
+
 test("черновик ИИ получает новое имя, если такое уже есть", () => {
   assert.equal(uniqueDraftName("Тренировка на сегодня", []), "Тренировка на сегодня");
   assert.equal(

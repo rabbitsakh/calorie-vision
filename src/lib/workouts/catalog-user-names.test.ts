@@ -110,6 +110,18 @@ test("ё, скобки и смесь русского с английским н
   if (bare.status === "confident") assert.equal(bare.catalogId, "ohp");
 });
 
+test("сгибание ног лёжа и сидя в тренажёре не склеиваются", () => {
+  const lying = matchExerciseName("Сгибание ног лёжа");
+  const seated = matchExerciseName("Сгибание ног сидя в тренажёре");
+  const short = matchExerciseName("Сгибание ног сидя");
+  assert.equal(lying.status, "confident");
+  assert.equal(seated.status, "confident");
+  assert.equal(short.status, "confident");
+  if (lying.status === "confident") assert.equal(lying.catalogId, "leg-curl");
+  if (seated.status === "confident") assert.equal(seated.catalogId, "leg-curl-seat");
+  if (short.status === "confident") assert.equal(short.catalogId, "leg-curl-seat");
+});
+
 test("лишние «стоя» и «в тренажере» не создают новое движение и не склеивают другое", () => {
   const standing = matchExerciseName("Ножной жим стоя");
   assert.equal(standing.status, "confident");
