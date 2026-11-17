@@ -357,14 +357,14 @@ select {
  * utility classes like text-sm cannot reintroduce zoom; large stage fields
  * (text-2xl+) are exempt and keep their display size.
  */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not(.gym-stepper__input),
 textarea,
 select {
   font-size: 16px;
 }
 
 @media (hover: none), (pointer: coarse) {
-  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]):not([class*="text-5xl"]):not([class*="text-6xl"]),
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]):not([class*="text-5xl"]):not([class*="text-6xl"]):not(.gym-stepper__input),
   textarea:not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]),
   select {
     font-size: 16px !important;
@@ -10442,6 +10442,9 @@ html[data-gym-live] .app-chrome {
   min-width: 0;
   flex-direction: column;
   gap: 2px;
+  /* Черновик подхода меняет подписи тоннажа. Якорь прокрутки не должен
+     из-за этого двигать ленту: высота строк и так зафиксирована nowrap. */
+  overflow-anchor: none;
 }
 
 .gym-live-bar {
@@ -10517,9 +10520,11 @@ html[data-gym-live] .app-chrome {
 .gym-live-compare,
 .gym-live-goal {
   display: flex;
-  align-items: baseline;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px;
   min-width: 0;
+  height: 1.25em;
   overflow: hidden;
   font-size: 12px;
   font-weight: 750;
@@ -10738,6 +10743,7 @@ html[data-gym-live] .app-chrome {
   gap: 8px;
   padding: 12px 0 8px;
   border-top: 1px solid var(--border-hairline);
+  overflow-anchor: none;
 }
 
 .gym-set-editor .gym-set-chip {
@@ -10773,25 +10779,38 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-set-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 1.5em;
   margin: 0 0 4px;
+  overflow: hidden;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.5;
   color: var(--muted);
+  white-space: nowrap;
 }
 
 .gym-set-up {
-  margin-left: 6px;
+  flex: 0 0 auto;
+  overflow: hidden;
   font-style: normal;
   color: var(--accent);
+  text-overflow: ellipsis;
 }
 
 .gym-stepper {
   display: flex;
   align-items: center;
   gap: 8px;
+  overflow-anchor: none;
 }
 
-.gym-stepper button {
+/* Только «−» и «+». Кнопка значения лежит глубже и не должна получать
+   48px, рамку и фон: иначе внутри широкого поля рисуется второй
+   прямоугольник, а 47.5 вылезает за него. */
+.gym-stepper > button {
   width: 48px;
   height: 48px;
   flex: 0 0 48px;
@@ -10801,17 +10820,20 @@ html[data-gym-live] .app-chrome {
   color: var(--accent-ink);
   font-size: 24px;
   font-weight: 600;
+  touch-action: manipulation;
 }
 
 .gym-stepper__val {
   display: flex;
   height: 48px;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 0;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   border-radius: 14px;
   background: var(--surface-mist);
+  color: var(--accent-ink);
   font-size: 22px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -10819,19 +10841,29 @@ html[data-gym-live] .app-chrome {
 
 .gym-stepper__edit,
 .gym-stepper__input {
+  display: block;
   width: 100%;
   height: 48px;
-  min-height: 44px;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  margin: 0;
   border: 0;
   border-radius: 14px;
   background: transparent;
-  padding: 0 4px;
+  box-shadow: none;
+  padding: 0 8px;
   color: inherit;
   font: inherit;
   font-size: 22px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 48px;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .gym-stepper__input:focus {
@@ -10847,15 +10879,23 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-set-log {
+  display: block;
   width: 100%;
+  height: var(--control-h);
   min-height: var(--control-h);
+  max-height: var(--control-h);
   margin-top: 2px;
+  padding: 0 12px;
+  overflow: hidden;
   border-radius: 14px;
   background: var(--accent-fill);
   color: var(--on-accent);
   font-size: 16px;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
+  line-height: var(--control-h);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .gym-set-sheet__backdrop {
@@ -11059,7 +11099,7 @@ html:has([role="dialog"]) .gym-rest-slot {
   animation: gym-screen-in 200ms ease-out;
 }
 
-.gym-stepper button,
+.gym-stepper > button,
 .gym-set-log,
 .gym-set-check,
 .gym-finish,
@@ -11067,7 +11107,7 @@ html:has([role="dialog"]) .gym-rest-slot {
   transition: transform 150ms ease-out, opacity 150ms ease-out;
 }
 
-.gym-stepper button:active,
+.gym-stepper > button:active,
 .gym-set-log:active,
 .gym-set-check:active,
 .gym-finish:active,
@@ -11116,7 +11156,7 @@ html:has([role="dialog"]) .gym-rest-slot {
   .gym-set-sheet__backdrop,
   .gym-rest-bar,
   .gym-set-check.is-pop,
-  .gym-stepper button,
+  .gym-stepper > button,
   .gym-set-log,
   .gym-set-check,
   .gym-finish,
