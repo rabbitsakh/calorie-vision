@@ -50,7 +50,8 @@ jobs:
           SKIP_ENV_VALIDATION: "1"
 
   playwright-smoke:
-    runs-on: ubuntu-latest
+    # ubuntu-latest перешёл на 26.04, а Playwright 1.55 не ставит Chromium на эту ОС.
+    runs-on: ubuntu-24.04
     needs: build
     timeout-minutes: 25
     steps:
