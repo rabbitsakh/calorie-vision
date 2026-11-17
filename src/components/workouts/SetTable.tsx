@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   fieldNeedsScroll,
   inputModeForColumn,
+  isProgressionUp,
   normalizeTypedField,
+  parseTableNumber,
   pickEditorRowKey,
   stepNumericField,
   withPreviousValues,
@@ -51,6 +53,25 @@ function fieldsOf(row: SetTableRowModel): SetTableFields {
 
 function sameFields(a: SetTableFields, b: SetTableFields): boolean {
   return a.kg === b.kg && a.reps === b.reps && a.km === b.km && a.time === b.time;
+}
+
+type ScrollPin = { y: number; top: number | null };
+
+/** Прокрутка кадра, а не window: на телефоне лента живёт в .cv-app-main. */
+function readScrollPin(): ScrollPin {
+  const scroller = document.querySelector(".cv-app-main");
+  return {
+    y: window.scrollY,
+    top: scroller instanceof HTMLElement ? scroller.scrollTop : null,
+  };
+}
+
+function applyScrollPin(pin: ScrollPin) {
+  const scroller = document.querySelector(".cv-app-main");
+  if (scroller instanceof HTMLElement && pin.top != null && Math.abs(scroller.scrollTop - pin.top) > 0.5) {
+    scroller.scrollTop = pin.top;
+  }
+  if (Math.abs(window.scrollY - pin.y) > 0.5) window.scrollTo(0, pin.y);
 }
 
 function chipClass(setType: string): string {
@@ -178,11 +199,20 @@ function SetTableRow({
   const [typeError, setTypeError] = useState<{ key: FieldKey; text: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pending = useRef<SetTableFields | null>(null);
+  const pinRef = useRef<ScrollPin | null>(null);
+
+  useLayoutEffect(() => {
+    const pin = pinRef.current;
+    if (!pin) return;
+    pinRef.current = null;
+    applyScrollPin(pin);
+  });
 
   useEffect(() => {
     if (!typing) return;
     const field = inputRef.current;
     if (!field) return;
+    field.focus({ preventScroll: true });
     return keepFieldVisible(field);
   }, [typing]);
 
@@ -208,7 +238,20 @@ function SetTableRow({
     publish(next);
   };
 
+  const pinBeforeStep = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    // До фокуса: WebView внутри position:fixed кадра прокручивает кнопку к краю.
+    const pin = readScrollPin();
+    pinRef.current = pin;
+    event.preventDefault();
+    window.setTimeout(() => {
+      if (pinRef.current !== pin) return;
+      pinRef.current = null;
+      applyScrollPin(pin);
+    }, 0);
+  };
+
   const step = (key: FieldKey, delta: number) => {
+    if (!pinRef.current) pinRef.current = readScrollPin();
     publish({ ...fields, [key]: stepNumericField(fields[key], delta) });
   };
 
@@ -308,72 +351,76 @@ function SetTableRow({
           <span>подставить</span>
         </button>
       ) : null}
-      {steps.map((item) => (
-        <div key={item.key}>
-          <p className="gym-set-label">
-            {item.label}
-            {item.key === "kg" && row.progressionUp ? (
-              <i className="gym-set-up">↑ к прошлому</i>
-            ) : null}
-          </p>
-          <div className="gym-stepper">
-            <button
-              type="button"
-              aria-label={`Меньше, ${item.label}`}
-              disabled={busy}
-              onClick={() => step(item.key, -item.delta)}
-            >
-              −
-            </button>
-            <div className="gym-stepper__val">
-              {typing === item.key ? (
-                <input
-                  ref={inputRef}
-                  className="gym-stepper__input"
-                  inputMode={inputModeForColumn(item.key)}
-                  enterKeyHint="done"
-                  autoComplete="off"
-                  autoFocus
-                  aria-label={item.label}
-                  aria-invalid={typeError?.key === item.key ? true : undefined}
-                  value={typed}
-                  onChange={(event) => {
-                    setTyped(event.target.value);
-                    setTypeError(null);
-                  }}
-                  onBlur={() => finishTyping(item.key)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") event.currentTarget.blur();
-                  }}
-                />
-              ) : (
-                <button
-                  type="button"
-                  className="gym-stepper__edit"
-                  aria-label={`Ввести ${item.label.toLowerCase()}, подход ${row.number}`}
-                  disabled={busy}
-                  onClick={() => {
-                    setTyping(item.key);
-                    setTyped(fields[item.key] || "");
-                    setTypeError(null);
-                  }}
-                >
-                  {fields[item.key] || "0"}
-                </button>
-              )}
+      {steps.map((item) => {
+        const showUp =
+          item.key === "kg" && isProgressionUp(kind, parseTableNumber(fields.kg), row.previousKg);
+        return (
+          <div key={item.key}>
+            <p className="gym-set-label">
+              <span>{item.label}</span>
+              {showUp ? <i className="gym-set-up">↑ к прошлому</i> : null}
+            </p>
+            <div className="gym-stepper">
+              <button
+                type="button"
+                aria-label={`Меньше, ${item.label}`}
+                disabled={busy}
+                onPointerDown={pinBeforeStep}
+                onClick={() => step(item.key, -item.delta)}
+              >
+                −
+              </button>
+              <div className="gym-stepper__val">
+                {typing === item.key ? (
+                  <input
+                    ref={inputRef}
+                    className="gym-stepper__input"
+                    inputMode={inputModeForColumn(item.key)}
+                    enterKeyHint="done"
+                    autoComplete="off"
+                    aria-label={item.label}
+                    aria-invalid={typeError?.key === item.key ? true : undefined}
+                    value={typed}
+                    onChange={(event) => {
+                      setTyped(event.target.value);
+                      setTypeError(null);
+                    }}
+                    onBlur={() => finishTyping(item.key)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="gym-stepper__edit"
+                    aria-label={`Ввести ${item.label.toLowerCase()}, подход ${row.number}`}
+                    disabled={busy}
+                    onPointerDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setTyping(item.key);
+                      setTyped(fields[item.key] || "");
+                      setTypeError(null);
+                    }}
+                  >
+                    {fields[item.key] || "0"}
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                aria-label={`Больше, ${item.label}`}
+                disabled={busy}
+                onPointerDown={pinBeforeStep}
+                onClick={() => step(item.key, item.delta)}
+              >
+                +
+              </button>
             </div>
-            <button
-              type="button"
-              aria-label={`Больше, ${item.label}`}
-              disabled={busy}
-              onClick={() => step(item.key, item.delta)}
-            >
-              +
-            </button>
+            {typeError?.key === item.key ? <p className="gym-set-error">{typeError.text}</p> : null}
           </div>
-          {typeError?.key === item.key ? <p className="gym-set-error">{typeError.text}</p> : null}
-        </div>
-      ))}
+        );
+      })}
       {row.completed ? (
         <button type="button" className="gym-set-log" disabled={busy} onClick={onCloseEditor}>
           Готово
