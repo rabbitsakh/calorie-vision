@@ -308,6 +308,27 @@ export function withPreviousValues<T extends { kg: string; reps: string; km: str
   };
 }
 
+/** «Прошлый 72 × 16». Пусто, если прошлого подхода нет. От черновика не зависит. */
+export function previousBannerText(label: string | null | undefined): string | null {
+  if (!label || label === "—") return null;
+  return label.replace("×", " × ");
+}
+
+/** «Подставить» ничего не изменит: в полях уже значения прошлого подхода. */
+export function previousAlreadyInFields(
+  fields: { kg: string; reps: string; km: string; time: string },
+  previous: { kg: string; reps: string; km: string; time: string } | null,
+): boolean {
+  const next = withPreviousValues(fields, previous);
+  if (!next) return false;
+  return (
+    next.kg === fields.kg &&
+    next.reps === fields.reps &&
+    next.km === fields.km &&
+    next.time === fields.time
+  );
+}
+
 /**
  * Persisted sets, then one autofill draft when nothing is left incomplete,
  * then local «+ Подход» rows.

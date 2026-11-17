@@ -130,15 +130,104 @@ test.describe("стабильный редактор подхода", () => {
 
     // Подсказка «↑ к прошлому» гаснет на границе прошлого веса (80) и не меняет высоту.
     const label = page.locator(".gym-set-label").first();
+    const up = label.locator(".gym-set-up");
+    await expect(up).toBeVisible();
     await expect(label).toContainText("↑ к прошлому");
     const labelH = await label.evaluate((el) => el.getBoundingClientRect().height);
     before = await pinOf(kg);
     await page.getByRole("button", { name: "Меньше, Килограммы" }).click();
     await expect(kg.locator(".gym-stepper__edit")).toHaveText("80");
-    await expect(label).not.toContainText("↑");
+    await expect(up).toBeHidden();
     expectStill(before, await pinOf(kg));
     const labelHAfter = await label.evaluate((el) => el.getBoundingClientRect().height);
     expect(Math.abs(labelHAfter - labelH)).toBeLessThanOrEqual(1);
+  });
+
+  test("плашка прошлого не сдвигает поля, когда ± совпадает с ним и когда нет", async ({ page }) => {
+    await openWorkout(page, 393);
+    const banner = page.locator(".gym-set-prev");
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText("Прошлый 80 × 6");
+    await expect(banner).toContainText("подставить");
+
+    const kg = stepper(page, "Килограммы");
+    const reps = stepper(page, "Повторения");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("82.5");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("6");
+
+    const place = () =>
+      page.evaluate(() => {
+        const main = document.querySelector(".cv-app-main");
+        const editor = document.querySelector(".gym-set-editor");
+        const fields = [...document.querySelectorAll(".gym-set-editor .gym-stepper")].map(
+          (el) => el.getBoundingClientRect().top,
+        );
+        return {
+          scrollTop: main instanceof HTMLElement ? main.scrollTop : 0,
+          editorTop: editor?.getBoundingClientRect().top ?? 0,
+          fieldTops: fields,
+          bannerH: document.querySelector(".gym-set-prev")?.getBoundingClientRect().height ?? 0,
+        };
+      });
+
+    const origin = await place();
+    expect(origin.fieldTops.length).toBeGreaterThanOrEqual(2);
+
+    const still = async () => {
+      const next = await place();
+      expect(Math.abs(next.scrollTop - origin.scrollTop), "scrollTop .cv-app-main").toBeLessThanOrEqual(1);
+      expect(Math.abs(next.editorTop - origin.editorTop), "верх редактора").toBeLessThanOrEqual(1);
+      expect(next.fieldTops.length).toBe(origin.fieldTops.length);
+      next.fieldTops.forEach((top, index) => {
+        expect(Math.abs(top - origin.fieldTops[index]!), `верх поля ${index}`).toBeLessThanOrEqual(1);
+      });
+      expect(Math.abs(next.bannerH - origin.bannerH), "высота плашки").toBeLessThanOrEqual(1);
+      await expect(banner).toBeVisible();
+      await expect(banner).toContainText("Прошлый 80 × 6");
+      await expect(banner).toContainText("подставить");
+    };
+
+    const click = async (name: string) => {
+      await page.getByRole("button", { name }).click();
+      await still();
+    };
+
+    // 82.5×6 → 80×6 (как в прошлый раз) → 77.5 → обратно через 80 к 85.
+    await click("Меньше, Килограммы");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("80");
+    await expect(banner).toBeDisabled();
+    await click("Меньше, Килограммы");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("77.5");
+    await expect(banner).toBeEnabled();
+    await click("Больше, Килограммы");
+    await expect(banner).toBeDisabled();
+    await click("Больше, Килограммы");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("82.5");
+    await expect(banner).toBeEnabled();
+    await click("Больше, Килограммы");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("85");
+
+    // Повторения: 6 (как в прошлый раз) → 5 → 6 → 7 → 8 → 6, вес остаётся 85.
+    await click("Меньше, Повторения");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("5");
+    await click("Больше, Повторения");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("6");
+    await click("Больше, Повторения");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("7");
+    await click("Больше, Повторения");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("8");
+    await click("Меньше, Повторения");
+    await click("Меньше, Повторения");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("6");
+    await expect(banner).toBeEnabled();
+
+    // Снова оба поля как в прошлый раз: плашка на месте, «подставить» приглушена.
+    await click("Меньше, Килограммы");
+    await click("Меньше, Килограммы");
+    await expect(kg.locator(".gym-stepper__edit")).toHaveText("80");
+    await expect(reps.locator(".gym-stepper__edit")).toHaveText("6");
+    await expect(banner).toBeDisabled();
+    await still();
   });
 
   test("в поле веса нет второго прямоугольника и обрезки", async ({ page }) => {

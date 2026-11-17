@@ -10762,8 +10762,14 @@ html[data-gym-live] .app-chrome {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   width: 100%;
+  height: 48px;
   min-height: 48px;
+  max-height: 48px;
+  flex: 0 0 48px;
+  box-sizing: border-box;
+  overflow: hidden;
   border-radius: 14px;
   background: var(--accent-soft);
   padding: 0 12px;
@@ -10771,9 +10777,32 @@ html[data-gym-live] .app-chrome {
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  overflow-anchor: none;
+}
+
+/* Совпадение с прошлым и сохранение не должны гасить всю плашку:
+   пропадает только действие «подставить», высота слота та же. */
+.gym-set-prev:disabled {
+  opacity: 1;
+}
+
+.gym-set-prev.is-same span:last-child {
+  opacity: 0.45;
+}
+
+.gym-set-prev span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gym-set-prev span:first-child {
+  flex: 1 1 auto;
 }
 
 .gym-set-prev span:last-child {
+  flex: 0 0 auto;
   font-size: 13px;
   font-weight: 700;
 }
@@ -10798,6 +10827,11 @@ html[data-gym-live] .app-chrome {
   font-style: normal;
   color: var(--accent);
   text-overflow: ellipsis;
+}
+
+/* Бейдж остаётся в строке: появление «↑ к прошлому» не меняет её высоту. */
+.gym-set-up.is-off {
+  visibility: hidden;
 }
 
 .gym-stepper {
@@ -10884,6 +10918,8 @@ html[data-gym-live] .app-chrome {
   height: var(--control-h);
   min-height: var(--control-h);
   max-height: var(--control-h);
+  flex: 0 0 var(--control-h);
+  box-sizing: border-box;
   margin-top: 2px;
   padding: 0 12px;
   overflow: hidden;
@@ -10896,6 +10932,13 @@ html[data-gym-live] .app-chrome {
   line-height: var(--control-h);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.gym-set-log__text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gym-set-sheet__backdrop {
