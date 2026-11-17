@@ -61,6 +61,7 @@ import {
   type BlockMode,
 } from "@/lib/workouts/block-mode";
 import { autofillNextDraft } from "@/lib/workouts/progression";
+import { retainMissingLastTime } from "@/lib/workouts/retain-last-time";
 import { getLeverMemory } from "@/lib/workouts/progression-lever-memory";
 import {
   countWorkingSets,
@@ -1429,7 +1430,7 @@ export function WorkoutsView({
 
   const refreshDetail = useCallback(
     async (session: SessionDetail) => {
-      setDetail(session);
+      setDetail((prev) => retainMissingLastTime(prev, session));
       const data = await readJson<{
         session: SessionDetail;
         progress: Progress;

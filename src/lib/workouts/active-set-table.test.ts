@@ -15,6 +15,8 @@ import {
   shouldAutoExpandNext,
   stepNumericField,
   toggleExpanded,
+  previousAlreadyInFields,
+  previousBannerText,
   withPreviousValues,
 } from "./active-set-table.ts";
 
@@ -257,4 +259,25 @@ test("тап по прошлому подставляет вес и повтор
     { kg: "80", reps: "6", km: "", time: "" },
   );
   assert.equal(withPreviousValues({ kg: "50", reps: "5", km: "", time: "" }, null), null);
+  assert.equal(previousBannerText("72×16"), "72 × 16");
+  assert.equal(previousBannerText("—"), null);
+  assert.equal(previousBannerText(""), null);
+  assert.equal(
+    previousAlreadyInFields(
+      { kg: "72", reps: "16", km: "", time: "" },
+      { kg: "72", reps: "16", km: "", time: "" },
+    ),
+    true,
+  );
+  assert.equal(
+    previousAlreadyInFields(
+      { kg: "74.5", reps: "16", km: "", time: "" },
+      { kg: "72", reps: "16", km: "", time: "" },
+    ),
+    false,
+  );
+  assert.equal(
+    previousAlreadyInFields({ kg: "72", reps: "16", km: "", time: "" }, null),
+    false,
+  );
 });

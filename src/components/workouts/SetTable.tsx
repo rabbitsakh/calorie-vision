@@ -9,6 +9,8 @@ import {
   normalizeTypedField,
   parseTableNumber,
   pickEditorRowKey,
+  previousAlreadyInFields,
+  previousBannerText,
   stepNumericField,
   withPreviousValues,
   type SetTableRowModel,
@@ -318,8 +320,8 @@ function SetTableRow({
   if (spec.usesReps) steps.push({ key: "reps", label: "Повторения", delta: 1 });
   if (spec.usesDistance) steps.push({ key: "km", label: "Километры", delta: 0.1 });
   if (spec.usesDuration) steps.push({ key: "time", label: "Минуты", delta: 1 });
-  const previousText =
-    row.previousLabel && row.previousLabel !== "—" ? row.previousLabel.replace("×", " × ") : null;
+  const previousText = previousBannerText(row.previousLabel);
+  const previousSame = previousAlreadyInFields(fields, row.previous);
 
   return (
     <li className={`gym-set-editor${row.pendingLocal ? " is-pending" : ""}`}>
@@ -346,7 +348,12 @@ function SetTableRow({
         ) : null}
       </div>
       {previousText ? (
-        <button type="button" className="gym-set-prev" disabled={busy} onClick={applyPrevious}>
+        <button
+          type="button"
+          className={`gym-set-prev${previousSame ? " is-same" : ""}`}
+          disabled={busy || previousSame}
+          onClick={applyPrevious}
+        >
           <span>Прошлый {previousText}</span>
           <span>подставить</span>
         </button>
@@ -358,7 +365,11 @@ function SetTableRow({
           <div key={item.key}>
             <p className="gym-set-label">
               <span>{item.label}</span>
-              {showUp ? <i className="gym-set-up">↑ к прошлому</i> : null}
+              {item.key === "kg" ? (
+                <i className={`gym-set-up${showUp ? "" : " is-off"}`} aria-hidden={showUp ? undefined : true}>
+                  ↑ к прошлому
+                </i>
+              ) : null}
             </p>
             <div className="gym-stepper">
               <button
@@ -421,23 +432,23 @@ function SetTableRow({
           </div>
         );
       })}
-      {row.completed ? (
-        <button type="button" className="gym-set-log" disabled={busy} onClick={onCloseEditor}>
-          Готово
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="gym-set-log"
-          disabled={busy}
-          onClick={() => {
-            setPop(true);
-            onLog(row, fields);
-          }}
-        >
-          {summary === "—" ? "Записать подход" : `Записать ${summary}`}
-        </button>
-      )}
+      <button
+        type="button"
+        className="gym-set-log"
+        disabled={busy}
+        onClick={() => {
+          if (row.completed) {
+            onCloseEditor();
+            return;
+          }
+          setPop(true);
+          onLog(row, fields);
+        }}
+      >
+        <span className="gym-set-log__text">
+          {row.completed ? "Готово" : summary === "—" ? "Записать подход" : `Записать ${summary}`}
+        </span>
+      </button>
     </li>
   );
 }
