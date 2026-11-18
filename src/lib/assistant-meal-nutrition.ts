@@ -400,11 +400,43 @@ function enrichOne(
   };
 }
 
+/**
+ * Порции нет, а в тексте блюда калории названы только «на 100 г».
+ * Это плотность, не съеденный итог и не повод выдумать граммы.
+ * Справочник со своей порцией не трогаем.
+ */
+function preferExplicitPer100(meal: AssistantMealDraft, corpus: string): AssistantMealDraft {
+  if (mealNamedGrams(meal) != null) return meal;
+  if (lookupPack(meal.name)) return meal;
+  const ctx = dishContext(meal.name, corpus);
+  if (!ctx.trim()) return meal;
+  const { portionKcal, per100Kcal } = replyKcalBreakdown(ctx);
+  if (portionKcal != null || per100Kcal == null) return meal;
+  const modelKcal = typeof meal.kcal === "number" && meal.kcal > 0 ? meal.kcal : null;
+  if (modelKcal != null && nutritionFiguresDiverge(modelKcal, per100Kcal)) return meal;
+  const next: AssistantMealDraft = {
+    ...meal,
+    name: (splitQuickPortion(meal.name).base || meal.name).trim(),
+    per100: {
+      calories: per100Kcal,
+      protein: meal.protein,
+      fat: meal.fat,
+      carbs: meal.carbs,
+    },
+  };
+  delete next.kcal;
+  delete next.protein;
+  delete next.fat;
+  delete next.carbs;
+  delete next.grams;
+  return next;
+}
+
 export function enrichUnsetMealNutrition(
   meals: AssistantMealDraft[],
   corpus: string,
   userMessage?: string,
 ): AssistantMealDraft[] {
   const statedByUser = userMessage ?? corpus;
-  return meals.map((meal) => enrichOne(meal, corpus, statedByUser));
+  return meals.map((meal) => preferExplicitPer100(enrichOne(meal, corpus, statedByUser), corpus));
 }
