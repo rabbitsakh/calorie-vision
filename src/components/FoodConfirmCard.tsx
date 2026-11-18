@@ -5,9 +5,12 @@ import {
   FOOD_CONFIRM_PORTION_SKIM,
   foodConfirmEnergyWarning,
   foodConfirmNutritionNote,
+  foodConfirmMacroBasisLabel,
+  foodConfirmPortionInput,
   foodConfirmToSaveInputs,
+  foodConfirmVisibleNumber,
   prepareFoodConfirmSave,
-  withFoodConfirmGrams,
+  rebaseFoodConfirmMacros,
   type FoodConfirmDish,
   type FoodConfirmSlot,
   type FoodConfirmSource,
@@ -179,6 +182,7 @@ function SimpleFoodConfirm({
         {rows.map((dish, index) => {
           const energy = foodConfirmEnergyWarning(dish);
           const nutritionNote = foodConfirmNutritionNote(dish);
+          const basisLabel = foodConfirmMacroBasisLabel(dish);
           return (
             <div key={`${dish.name}-${index}`} className="confirm-family-dish">
               <input
@@ -202,15 +206,7 @@ function SimpleFoodConfirm({
                     aria-label="Порция"
                     className="confirm-family-input"
                     onChange={(event) => {
-                      const raw = event.target.value;
-                      const grams = raw === "" ? null : Number(raw);
-                      patch(
-                        index,
-                        withFoodConfirmGrams(
-                          dish,
-                          grams != null && Number.isFinite(grams) && grams > 0 ? grams : null,
-                        ),
-                      );
+                      patch(index, foodConfirmPortionInput(dish, event.target.value));
                     }}
                   />
                 </label>
@@ -239,36 +235,39 @@ function SimpleFoodConfirm({
                     ["fat", "Ж"],
                     ["carbs", "У"],
                   ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="confirm-family-label">
-                    {label}
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={dish[key] ?? ""}
-                      disabled={disabled || busy}
-                      className="confirm-family-input"
-                      onChange={(event) => {
-                        const raw = event.target.value;
-                        const value = raw === "" ? null : Number(raw);
-                        patch(index, {
-                          ...dish,
-                          [key]: value != null && Number.isFinite(value) ? value : null,
-                          unparsed: false,
-                          nutritionBasis: undefined,
-                          nutritionWarning: undefined,
-                          per100: null,
-                        });
-                      }}
-                    />
-                  </label>
-                ))}
+                ).map(([key, label]) => {
+                  const shown = foodConfirmVisibleNumber(dish, key);
+                  return (
+                    <label key={key} className="confirm-family-label">
+                      {label}
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={shown ?? ""}
+                        disabled={disabled || busy}
+                        className="confirm-family-input"
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          const value = raw === "" ? null : Number(raw);
+                          patch(
+                            index,
+                            rebaseFoodConfirmMacros(dish, {
+                              [key]: value != null && Number.isFinite(value) ? value : null,
+                            }),
+                          );
+                        }}
+                      />
+                    </label>
+                  );
+                })}
               </div>
-              {dish.grams == null ? (
-                <p className="mt-1 text-[10px] font-semibold text-amber-800">
-                  Порция не указана
-                  {dish.per100 ? ` · ${Math.round(dish.per100.calories)} ккал на 100 ${dish.unit === "мл" ? "мл" : "г"}` : ""}
+              {basisLabel ? (
+                <p className="mt-1 text-[10px] font-semibold text-[var(--muted-strong)]" data-testid="kbju-basis">
+                  КБЖУ {basisLabel}
                 </p>
+              ) : null}
+              {dish.grams == null ? (
+                <p className="mt-1 text-[10px] font-semibold text-amber-800">Порция не указана</p>
               ) : null}
               {nutritionNote ? (
                 <p

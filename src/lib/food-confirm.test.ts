@@ -10,9 +10,14 @@ import {
   foodConfirmMissingPortionError,
   foodConfirmNutritionNote,
   foodConfirmToSaveInputs,
+  foodConfirmMacroBasisLabel,
+  foodConfirmPortionInput,
+  foodConfirmShowsPer100,
+  foodConfirmVisibleNumber,
   per100FromLookup,
   portionAfterProductLookup,
   prepareFoodConfirmSave,
+  rebaseFoodConfirmMacros,
   withFoodConfirmGrams,
 } from "./food-confirm.ts";
 import { enrichUnsetMealNutrition } from "./assistant-meal-nutrition.ts";
@@ -363,6 +368,163 @@ test("напиток с ккал и пустым БЖУ не обогащает�
   assert.equal(vodka?.fat, 0);
   assert.equal(vodka?.carbs, 0);
   assert.equal(vodka?.nutritionBasis, undefined);
+});
+
+function typePortion(dish: ReturnType<typeof foodConfirmFromQuickMeal>, steps: string[]) {
+  return steps.reduce((current, raw) => foodConfirmPortionInput(current, raw), dish);
+}
+
+test("плотность на 100 г: 1→15→150 совпадает с сразу 150, пустая порция базу не ломает", () => {
+  const dish = foodConfirmFromQuickMeal({
+    name: "Скумбрия",
+    unit: "г",
+    per100: { calories: 200, protein: 20, fat: 15, carbs: 0 },
+  });
+  assert.equal(dish.grams, null);
+  assert.equal(dish.kcal, null);
+  assert.equal(foodConfirmShowsPer100(dish), true);
+  assert.equal(foodConfirmMacroBasisLabel(dish), "на 100 г");
+  assert.equal(foodConfirmVisibleNumber(dish, "kcal"), 200);
+  assert.equal(foodConfirmVisibleNumber(dish, "protein"), 20);
+  assert.equal(foodConfirmVisibleNumber(dish, "carbs"), 0);
+
+  const one = foodConfirmPortionInput(dish, "1");
+  assert.equal(one.kcal, 2);
+  assert.equal(one.protein, 0.2);
+  const fifteen = foodConfirmPortionInput(one, "15");
+  assert.equal(fifteen.kcal, 30);
+  assert.equal(fifteen.fat, 2.3);
+  const typed = foodConfirmPortionInput(fifteen, "150");
+  const direct = foodConfirmPortionInput(dish, "150");
+  assert.equal(typed.grams, 150);
+  assert.equal(typed.kcal, 300);
+  assert.equal(typed.protein, 30);
+  assert.equal(typed.fat, 22.5);
+  assert.equal(typed.carbs, 0);
+  assert.equal(typed.kcal, direct.kcal);
+  assert.equal(typed.protein, direct.protein);
+  assert.equal(typed.fat, direct.fat);
+  assert.equal(foodConfirmMacroBasisLabel(typed), "на порцию");
+
+  const cleared = foodConfirmPortionInput(typed, "");
+  assert.equal(cleared.grams, null);
+  assert.equal(cleared.nutritionBase?.per100, true);
+  assert.equal(cleared.nutritionBase?.kcal, 200);
+  assert.equal(foodConfirmShowsPer100(cleared), true);
+  assert.equal(foodConfirmVisibleNumber(cleared, "kcal"), 200);
+  const zeroed = foodConfirmPortionInput(cleared, "0");
+  assert.equal(zeroed.grams, null);
+  assert.equal(zeroed.nutritionBase?.kcal, 200);
+  const again = typePortion(zeroed, ["1", "15", "150"]);
+  assert.equal(again.kcal, 300);
+  assert.equal(again.protein, 30);
+  assert.equal(again.fat, 22.5);
+});
+
+test("без плотности посимвольный ввод не копит коэффициент от предыдущей цифры", () => {
+  const dish = foodConfirmFromQuickMeal({
+    name: "Скумбрия",
+    unit: "г",
+    kcal: 200,
+    protein: 20,
+    fat: 15,
+    carbs: 0,
+  });
+  assert.equal(foodConfirmShowsPer100(dish), false);
+  assert.equal(foodConfirmMacroBasisLabel(dish), null);
+  const typed = typePortion(dish, ["1", "15", "150"]);
+  const direct = foodConfirmPortionInput(dish, "150");
+  assert.equal(typed.kcal, 200);
+  assert.equal(typed.protein, 20);
+  assert.equal(typed.fat, 15);
+  assert.equal(typed.kcal, direct.kcal);
+  assert.equal(typed.grams, direct.grams);
+
+  const cleared = typePortion(foodConfirmPortionInput(typed, ""), ["1", "15", "150"]);
+  assert.equal(cleared.kcal, 200);
+  assert.equal(cleared.protein, 20);
+
+  const replaced = foodConfirmPortionInput(typed, "90");
+  assert.equal(replaced.grams, 90);
+  assert.equal(replaced.kcal, 120);
+  assert.equal(replaced.protein, 12);
+  assert.equal(replaced.fat, 9);
+});
+
+test("ручная правка ккал фиксирует базу один раз и не копит округление", () => {
+  const start = foodConfirmFromQuickMeal({
+    name: "Скумбрия",
+    unit: "г",
+    per100: { calories: 200, protein: 20, fat: 15, carbs: 0 },
+  });
+  const portion = foodConfirmPortionInput(start, "150");
+  assert.equal(portion.kcal, 300);
+  const edited = rebaseFoodConfirmMacros(portion, { kcal: 400 });
+  assert.equal(edited.kcal, 400);
+  assert.equal(edited.per100, null);
+  assert.equal(edited.nutritionBase?.per100, false);
+  assert.equal(edited.nutritionBase?.amount, 150);
+  assert.equal(edited.nutritionBase?.kcal, 400);
+  assert.equal(edited.nutritionBase?.protein, 30);
+
+  const typed = typePortion(edited, ["1", "15", "150"]);
+  const direct = foodConfirmPortionInput(edited, "150");
+  assert.equal(typed.kcal, 400);
+  assert.equal(direct.kcal, 400);
+  assert.equal(typed.protein, direct.protein);
+
+  const larger = foodConfirmPortionInput(edited, "300");
+  assert.equal(larger.kcal, 800);
+  assert.equal(larger.protein, 60);
+  const back = foodConfirmPortionInput(larger, "150");
+  assert.equal(back.kcal, 400);
+  assert.equal(back.protein, 30);
+  const nudged = foodConfirmPortionInput(foodConfirmPortionInput(edited, "151"), "150");
+  assert.equal(nudged.kcal, 400);
+});
+
+test("фото без порции забирает per100g модели и не пишет его как съеденные ккал", () => {
+  const dish = foodConfirmFromPhotoDraft({
+    dishName: "Скумбрия",
+    calories: 200,
+    protein: 20,
+    fat: 15,
+    carbs: 0,
+    per100g: { calories: 200, protein: 20, fat: 15, carbs: 0 },
+  });
+  assert.equal(dish.grams, null);
+  assert.equal(dish.kcal, null);
+  assert.equal(dish.per100?.calories, 200);
+  assert.equal(foodConfirmShowsPer100(dish), true);
+  const saved = prepareFoodConfirmSave([dish]);
+  assert.equal(saved.ok, false);
+  if (saved.ok) return;
+  assert.equal(saved.error, foodConfirmMissingPortionError("Скумбрия"));
+  assert.equal(foodConfirmPortionInput(dish, "150").kcal, 300);
+});
+
+test("скумбрия: в справочнике нет порции, «на 100 г» в тексте не становится граммами", () => {
+  const [meal] = enrichUnsetMealNutrition(
+    [{ name: "Скумбрия", unit: "г", kcal: 200, protein: 20, fat: 15, carbs: 0 }],
+    "Скумбрия — около 200 ккал на 100 г, белки 20 г, жиры 15 г, углеводы 0 г.",
+  );
+  assert.equal(meal?.grams, undefined);
+  assert.equal(meal?.kcal, undefined);
+  assert.equal(meal?.per100?.calories, 200);
+  assert.equal(meal?.per100?.protein, 20);
+  assert.equal(meal?.per100?.fat, 15);
+  assert.equal(meal?.per100?.carbs, 0);
+  const dish = foodConfirmFromQuickMeal(meal!);
+  assert.equal(foodConfirmMacroBasisLabel(dish), "на 100 г");
+  assert.equal(typePortion(dish, ["1", "15", "150"]).kcal, 300);
+
+  const [plain] = enrichUnsetMealNutrition(
+    [{ name: "Чебурек", kcal: 300, protein: 12, fat: 16, carbs: 28 }],
+    "Чебурек примерно 300 ккал, белки 12, жиры 16, углеводы 28.",
+  );
+  assert.equal(plain?.kcal, 300);
+  assert.equal(plain?.grams, undefined);
+  assert.equal(plain?.per100, undefined);
 });
 
 test("жирный продукт не теряет 100 г из-за плотности выше 500", () => {

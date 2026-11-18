@@ -1067,6 +1067,7 @@ export async function toolRecognizeAndSaveMeal(opts: {
       fiber: item.fiber,
       sugar: item.sugar,
       portionGrams: item.portionGrams,
+      per100g: item.per100g,
       confidence: item.confidence,
       photoKind: item.photoKind,
       barcode: item.barcode ?? undefined,

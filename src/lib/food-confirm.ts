@@ -24,6 +24,22 @@ export type FoodConfirmPer100 = {
   carbs?: number;
 };
 
+/**
+ * Неизменная база пересчёта. Порция на экране от неё считается каждый раз заново,
+ * а не от уже пересчитанного предыдущего ввода.
+ * per100 — плотность на 100 г/мл. amount 0 — числа ещё не привязаны к весу.
+ */
+export type FoodConfirmNutritionBase = {
+  amount: number;
+  kcal: number;
+  protein: number | null;
+  fat: number | null;
+  carbs: number | null;
+  fiber: number | null;
+  sugar: number | null;
+  per100: boolean;
+};
+
 export type FoodConfirmDish = {
   name: string;
   grams: number | null;
@@ -39,6 +55,8 @@ export type FoodConfirmDish = {
   time?: string | null;
   unparsed?: boolean;
   per100?: FoodConfirmPer100 | null;
+  /** Снимок для пересчёта порции. Не пишется в дневник. */
+  nutritionBase?: FoodConfirmNutritionBase | null;
   /** estimate — типовая строка справочника. unknown — состав не найден, нули не показываем. */
   nutritionBasis?: "estimate" | "unknown";
   /** Санитарная проверка текста: цифры оставлены, на карточке предупреждение. */
@@ -92,37 +110,205 @@ export function foodConfirmEnergyWarning(dish: FoodConfirmDish): string | null {
   return `Ккал не сходятся с БЖУ: в поле ${Math.round(dish.kcal)}, по БЖУ около ${Math.round(expected)}`;
 }
 
-/** Первая явная порция не пересчитывает ккал от выдуманных 100 г. Дальше — от per100 или пропорционально. */
-export function withFoodConfirmGrams(dish: FoodConfirmDish, grams: number | null): FoodConfirmDish {
-  if (grams == null || !Number.isFinite(grams) || grams <= 0) {
-    return { ...dish, grams: null };
-  }
-  const next = Math.round(grams);
+function numOrNull(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function deriveFoodConfirmBase(dish: FoodConfirmDish): FoodConfirmNutritionBase {
   if (dish.per100 && dish.per100.calories > 0) {
-    const ratio = next / 100;
     return {
-      ...dish,
-      grams: next,
-      kcal: Math.max(0, Math.round(dish.per100.calories * ratio)),
-      protein: scaleOpt(dish.per100.protein, ratio),
-      fat: scaleOpt(dish.per100.fat, ratio),
-      carbs: scaleOpt(dish.per100.carbs, ratio),
+      amount: 100,
+      kcal: dish.per100.calories,
+      protein: numOrNull(dish.per100.protein),
+      fat: numOrNull(dish.per100.fat),
+      carbs: numOrNull(dish.per100.carbs),
+      fiber: numOrNull(dish.fiber),
+      sugar: numOrNull(dish.sugar),
+      per100: true,
     };
   }
   if (dish.grams != null && dish.grams > 0 && dish.kcal != null) {
-    const ratio = next / dish.grams;
     return {
-      ...dish,
-      grams: next,
-      kcal: Math.max(0, Math.round(dish.kcal * ratio)),
-      protein: scaleOpt(dish.protein, ratio),
-      fat: scaleOpt(dish.fat, ratio),
-      carbs: scaleOpt(dish.carbs, ratio),
-      fiber: scaleOpt(dish.fiber, ratio),
-      sugar: scaleOpt(dish.sugar, ratio),
+      amount: Math.round(dish.grams),
+      kcal: dish.kcal,
+      protein: numOrNull(dish.protein),
+      fat: numOrNull(dish.fat),
+      carbs: numOrNull(dish.carbs),
+      fiber: numOrNull(dish.fiber),
+      sugar: numOrNull(dish.sugar),
+      per100: false,
     };
   }
-  return { ...dish, grams: next };
+  return {
+    amount: 0,
+    kcal: dish.kcal ?? 0,
+    protein: numOrNull(dish.protein),
+    fat: numOrNull(dish.fat),
+    carbs: numOrNull(dish.carbs),
+    fiber: numOrNull(dish.fiber),
+    sugar: numOrNull(dish.sugar),
+    per100: false,
+  };
+}
+
+function lockedFoodConfirmBase(dish: FoodConfirmDish): FoodConfirmNutritionBase {
+  return dish.nutritionBase ?? deriveFoodConfirmBase(dish);
+}
+
+/** «1»→«15»→«150» и стирание до «15» — всё ещё набор первой порции, не новый вес. */
+function isPortionTypingContinuation(previous: number | null, next: number): boolean {
+  if (previous == null || !(previous > 0)) return true;
+  const prev = String(Math.round(previous));
+  const nxt = String(next);
+  return nxt.startsWith(prev) || prev.startsWith(nxt);
+}
+
+function applyFoodConfirmScale(
+  dish: FoodConfirmDish,
+  base: FoodConfirmNutritionBase,
+  grams: number,
+): FoodConfirmDish {
+  const ratio = grams / base.amount;
+  const next: FoodConfirmDish = {
+    ...dish,
+    grams,
+    nutritionBase: base,
+    kcal: Math.max(0, Math.round(base.kcal * ratio)),
+    protein: scaleOpt(base.protein, ratio),
+    fat: scaleOpt(base.fat, ratio),
+    carbs: scaleOpt(base.carbs, ratio),
+  };
+  if (!base.per100) {
+    next.fiber = scaleOpt(base.fiber, ratio);
+    next.sugar = scaleOpt(base.sugar, ratio);
+  }
+  return next;
+}
+
+/**
+ * Порция пустая, а числа известны только на 100 г/мл — в полях показываем плотность, не съеденное.
+ */
+export function foodConfirmShowsPer100(dish: FoodConfirmDish): boolean {
+  if (dish.grams != null && dish.grams > 0) return false;
+  if (dish.nutritionBase && !dish.nutritionBase.per100) return false;
+  return Boolean(dish.per100 && dish.per100.calories > 0);
+}
+
+export function foodConfirmVisibleNumber(
+  dish: FoodConfirmDish,
+  key: "kcal" | "protein" | "fat" | "carbs",
+): number | null {
+  if (foodConfirmShowsPer100(dish) && dish.per100) {
+    if (key === "kcal") return dish.per100.calories;
+    const fromDensity = dish.per100[key];
+    if (fromDensity != null && Number.isFinite(fromDensity)) return fromDensity;
+  }
+  const value = dish[key];
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
+/** Подпись у КБЖУ: плотность, пока порции нет, и итог, когда граммы уже введены. */
+export function foodConfirmMacroBasisLabel(dish: FoodConfirmDish): string | null {
+  const unit = dish.unit === "мл" ? "мл" : "г";
+  if (foodConfirmShowsPer100(dish)) return `на 100 ${unit}`;
+  if (
+    dish.grams != null &&
+    dish.grams > 0 &&
+    dish.per100 &&
+    dish.per100.calories > 0 &&
+    dish.nutritionBase?.per100 !== false
+  ) {
+    return "на порцию";
+  }
+  return null;
+}
+
+/**
+ * Пересчёт от неизменной базы.
+ * Плотность на 100 г — каждый ввод делится на 100, а не на предыдущую цифру.
+ * Пустая и нулевая порция базу не стирают.
+ * Без плотности первая порция (включая «1»→«15»→«150») не выдумывает 100 г:
+ * ккал остаются как есть, пока вес не заменят на другое число.
+ */
+export function withFoodConfirmGrams(dish: FoodConfirmDish, grams: number | null): FoodConfirmDish {
+  const base = lockedFoodConfirmBase(dish);
+  if (grams == null || !Number.isFinite(grams) || grams <= 0) {
+    return { ...dish, grams: null, nutritionBase: base };
+  }
+  const next = Math.round(grams);
+  if (base.per100 || base.amount > 0) {
+    const locked: FoodConfirmNutritionBase = base.per100 ? { ...base, amount: 100, per100: true } : base;
+    return applyFoodConfirmScale(dish, locked, next);
+  }
+  if (isPortionTypingContinuation(dish.grams, next) || (!(base.kcal > 0) && dish.kcal == null)) {
+    return { ...dish, grams: next, nutritionBase: base };
+  }
+  const locked: FoodConfirmNutritionBase = {
+    ...base,
+    amount: dish.grams != null && dish.grams > 0 ? Math.round(dish.grams) : next,
+    kcal: dish.kcal ?? base.kcal,
+    protein: numOrNull(dish.protein),
+    fat: numOrNull(dish.fat),
+    carbs: numOrNull(dish.carbs),
+    fiber: numOrNull(dish.fiber),
+    sugar: numOrNull(dish.sugar),
+    per100: false,
+  };
+  return applyFoodConfirmScale(dish, locked, next);
+}
+
+/** Строка из поля «Порция»: пусто и ноль не ломают базу. */
+export function foodConfirmPortionInput(dish: FoodConfirmDish, raw: string): FoodConfirmDish {
+  const trimmed = raw.trim().replace(",", ".");
+  if (!trimmed) return withFoodConfirmGrams(dish, null);
+  const grams = Number(trimmed);
+  if (!Number.isFinite(grams) || grams <= 0) return withFoodConfirmGrams(dish, null);
+  return withFoodConfirmGrams(dish, grams);
+}
+
+/**
+ * Ручная правка ккал/БЖУ. База снимается один раз с текущего ненулевого веса.
+ * Дальше порция масштабирует этот снимок, а не каждое промежуточное поле.
+ */
+export function rebaseFoodConfirmMacros(
+  dish: FoodConfirmDish,
+  patch: Partial<Pick<FoodConfirmDish, "kcal" | "protein" | "fat" | "carbs" | "fiber" | "sugar">>,
+): FoodConfirmDish {
+  const current = {
+    kcal: foodConfirmVisibleNumber(dish, "kcal"),
+    protein: foodConfirmVisibleNumber(dish, "protein"),
+    fat: foodConfirmVisibleNumber(dish, "fat"),
+    carbs: foodConfirmVisibleNumber(dish, "carbs"),
+    fiber: numOrNull(dish.fiber),
+    sugar: numOrNull(dish.sugar),
+  };
+  const merged = { ...current, ...patch };
+  const amount = dish.grams != null && dish.grams > 0 ? Math.round(dish.grams) : 0;
+  const base: FoodConfirmNutritionBase = {
+    amount,
+    kcal: merged.kcal ?? 0,
+    protein: numOrNull(merged.protein),
+    fat: numOrNull(merged.fat),
+    carbs: numOrNull(merged.carbs),
+    fiber: numOrNull(merged.fiber),
+    sugar: numOrNull(merged.sugar),
+    per100: false,
+  };
+  return {
+    ...dish,
+    kcal: merged.kcal,
+    protein: merged.protein,
+    fat: merged.fat,
+    carbs: merged.carbs,
+    fiber: merged.fiber,
+    sugar: merged.sugar,
+    unparsed: false,
+    nutritionBasis: undefined,
+    nutritionWarning: undefined,
+    per100: null,
+    nutritionBase: base,
+  };
 }
 
 export function prepareFoodConfirmSave(dishes: FoodConfirmDish[]):
@@ -305,24 +491,38 @@ export function foodConfirmFromPhotoDraft(
     barcode?: string;
     brand?: string;
     recognitionSource?: string;
+    per100g?: FoodConfirmPer100 | null;
   },
   source: FoodConfirmSource = "photo",
 ): FoodConfirmDish {
   const grams = draft.portionGrams && draft.portionGrams > 0 ? Math.round(draft.portionGrams) : null;
+  const density =
+    draft.per100g && draft.per100g.calories > 0
+      ? {
+          calories: draft.per100g.calories,
+          protein: draft.per100g.protein,
+          fat: draft.per100g.fat,
+          carbs: draft.per100g.carbs,
+        }
+      : null;
+  // Порция уже есть — база это итог на неё. Плотность подставляем только когда веса нет.
+  const per100 = grams == null ? density : null;
   return {
     name: draft.dishName?.trim() || "",
     grams,
     unit: "г",
-    kcal:
-      draft.calories != null && Number.isFinite(draft.calories) && draft.calories > 0
+    kcal: per100
+      ? null
+      : draft.calories != null && Number.isFinite(draft.calories) && draft.calories > 0
         ? Math.round(draft.calories)
         : null,
-    protein: draft.protein ?? null,
-    fat: draft.fat ?? null,
-    carbs: draft.carbs ?? null,
+    protein: per100 ? null : (draft.protein ?? null),
+    fat: per100 ? null : (draft.fat ?? null),
+    carbs: per100 ? null : (draft.carbs ?? null),
     fiber: draft.fiber ?? null,
     sugar: draft.sugar ?? null,
     mealSlot: draft.mealType ?? null,
+    per100,
     source: draft.photoKind === "barcode" || draft.barcode ? "barcode" : source,
     barcode: draft.barcode,
     brand: draft.brand,

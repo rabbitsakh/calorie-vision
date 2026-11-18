@@ -74,6 +74,12 @@ type PhotoDraft = {
   fiber?: number;
   sugar?: number;
   portionGrams?: number;
+  per100g?: {
+    calories: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+  };
   mealType?: MealTypeKey;
   confidence?: number;
   photoKind?: string;
@@ -288,7 +294,11 @@ function PhotoConfirm({
   }
 
   const dishes = data.drafts.map((draft) => ({
-    ...foodConfirmFromPhotoDraft({ ...draft, mealType: draft.mealType ?? mealType }),
+    ...foodConfirmFromPhotoDraft({
+      ...draft,
+      mealType: draft.mealType ?? mealType,
+      per100g: draft.per100g,
+    }),
     imagePath: data.imagePath,
   }));
 
