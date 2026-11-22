@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Шторка сундука</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сегодня</h1></header>
+    <p class="date">воскресенье, 22 ноября</p>
+    <div class="scroll">
+
+      <section class="day-card" aria-label="Сейчас">
+        <div class="day-head">
+          <div style="flex:1;min-width:0">
+            <p class="day-eye">Сейчас · день</p>
+            <p class="day-title">Осталось 458 <span>из 2 100 ккал</span></p>
+          </div>
+          <img src="../../../public/mascot/art/autumn/tip.webp" alt="" />
+        </div>
+        <div class="kcal-scale" aria-hidden="true"><i style="width:78%"></i></div>
+        <div class="macros">
+          <div class="macro"><b>Белки</b><i><span style="width:66%;background:#0d7377"></span></i><em>92 из 140 г</em></div>
+          <div class="macro"><b>Жиры</b><i><span style="width:77%;background:#d97706"></span></i><em>54 из 70 г</em></div>
+          <div class="macro"><b>Углеводы</b><i><span style="width:73%;background:#0891b2"></span></i><em>168 из 230 г</em></div>
+        </div>
+        <div class="water-chip">
+          <div><b>Вода</b><span>1,2 из 2,0 л</span></div>
+          <button type="button">Стакан</button>
+        </div>
+      </section>
+<button class="chest-strip" type="button" aria-label="Сундук">
+        <span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot wait"></i></span>
+        <span data-chest="rare" data-pose="shut"></span>
+        <p>Вчера зал, позавчера завтрак — остался сегодняшний листок.</p>
+      </button>
+      <article class="meal"><div><span>Завтрак</span><b>Сырники со сметаной</b></div><em>420</em></article>
+      <article class="meal"><div><span>Обед</span><b>Курица с киноа</b></div><em>610</em></article>
+
+    </div>
+    <div class="sheet-scrim"></div>
+    <section class="sheet" aria-label="Подробнее про сундук">
+      <div class="grab"></div>
+      <p class="kicker">2 из 3</p>
+      <h2 style="font-family:Unbounded,sans-serif;font-size:22px;margin:8px 0 0">Остался сегодняшний листок</h2>
+      <p class="rule">Вчера был зал, позавчера завтрак. Сегодня хватит еды или тренировки.</p>
+      <div class="todo"><b>Если успеешь оба</b><span>Сделаешь и то и другое — в сундуке будет редкая вещь.</span></div>
+      <p style="margin:10px 0 0;font-size:12px;font-weight:650;color:#5a635c">В правилах: еда от 80 ккал. Тренировка — от 5 повторов, 5 минут или полкилометра. Не разминка.</p>
+    </section>
+  </div>
+  <script src="chest.js"></script>
+</body></html>

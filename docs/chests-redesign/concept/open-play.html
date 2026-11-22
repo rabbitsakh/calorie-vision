@@ -30,10 +30,10 @@
     <div id="chest" data-chest="rare" data-pose="shut" class="lg"></div>
     <div id="card" class="loot-card">
       <div class="sw"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 6C16 26 10 34 12 46c2 12 12 14 20 14s18-2 20-14c2-12-4-20-20-40z"/></svg></div>
-      <p style="margin:8px 0 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c4a03">Поинтереснее</p>
+      <p style="margin:8px 0 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c4a03">Редкий</p>
       <p style="margin:2px 0 0;font-family:Unbounded,sans-serif;font-weight:700;font-size:18px">Золотой лист</p>
     </div>
-    <div id="cap"><h2 id="title">Я замерла</h2><p id="sub">Сундук с камушком ещё закрыт</p><button id="skip" type="button" style="margin-top:10px;background:transparent;color:white;border:0;font-weight:800">Хватит, покажи подарок</button></div>
+    <div id="cap"><h2 id="title">Я замерла</h2><p id="sub">Редкий сундук, крышка закрыта</p><button id="skip" type="button" style="margin-top:10px;background:transparent;color:white;border:0;font-weight:800">Хватит, покажи подарок</button></div>
   </div>
   <script src="chest.js"></script>
   <script>
@@ -68,7 +68,7 @@
       if (ms < 700) {
         pear.src = goal;
         title.textContent = "Я замерла";
-        sub.textContent = "Сундук с камушком. Крышка закрыта.";
+        sub.textContent = "Редкий сундук. Крышка закрыта.";
         pear.style.transform = "translateY(" + Math.sin(ms / 140) * 4 + "px)";
       } else if (ms < 1500) {
         pear.src = cheer;

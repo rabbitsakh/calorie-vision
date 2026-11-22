@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>Сундук получен</title>
+  <title>Сундук готов</title>
   <link rel="stylesheet" href="../screens.css" />
   <link rel="stylesheet" href="rich.css" />
 </head>
@@ -11,26 +11,37 @@
     <header class="top"><h1>Сегодня</h1></header>
     <p class="date">воскресенье, 22 ноября</p>
     <div class="scroll">
-      <section class="pantry hot">
-        <p class="kicker">Можно открывать</p>
-        <h2>Сундук твой</h2>
-        <p class="rule">Сегодня ты и поел, и был в зале. Поэтому он поинтереснее обычного.</p>
-        <div class="leaves">
-          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/></svg></div><b>Пт</b><span>еда</span></div>
-          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/></svg></div><b>Сб</b><span>зал</span></div>
-          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/></svg></div><b>Вс</b><span>и то и другое</span></div>
+
+      <section class="day-card" aria-label="Сейчас">
+        <div class="day-head">
+          <div style="flex:1;min-width:0">
+            <p class="day-eye">Сейчас · день</p>
+            <p class="day-title">Осталось 458 <span>из 2 100 ккал</span></p>
+          </div>
+          <img src="../../../public/mascot/art/autumn/tip.webp" alt="" />
         </div>
-        <div class="chest-row" style="margin-top:14px">
-          <div data-chest="rare" data-pose="shut" class="lg"></div>
-          <p>Я уже держу крышку. Откроем?</p>
+        <div class="kcal-scale" aria-hidden="true"><i style="width:78%"></i></div>
+        <div class="macros">
+          <div class="macro"><b>Белки</b><i><span style="width:66%;background:#0d7377"></span></i><em>92 из 140 г</em></div>
+          <div class="macro"><b>Жиры</b><i><span style="width:77%;background:#d97706"></span></i><em>54 из 70 г</em></div>
+          <div class="macro"><b>Углеводы</b><i><span style="width:73%;background:#0891b2"></span></i><em>168 из 230 г</em></div>
         </div>
-        <button class="open-btn" type="button">Открыть</button>
-        <img class="mascot" src="../../../public/mascot/art/autumn/cheer.webp" alt="" style="width:96px;height:96px;top:4px" />
+        <div class="water-chip">
+          <div><b>Вода</b><span>1,2 из 2,0 л</span></div>
+          <button type="button">Стакан</button>
+        </div>
       </section>
+<button class="chest-strip ready" type="button" aria-label="Сундук">
+        <span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot on"></i></span>
+        <span data-chest="rare" data-pose="shut"></span>
+        <p>Три дня есть. Можно открывать.</p>
+      </button>
+      <article class="meal"><div><span>Завтрак</span><b>Сырники со сметаной</b></div><em>420</em></article>
+      <article class="meal"><div><span>Обед</span><b>Курица с киноа</b></div><em>610</em></article>
+
     </div>
-    <nav class="tabs">
-      <div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div>
-    </nav>
+    <div class="composer"><span style="flex:1">Записать еду</span><span class="cam">◉</span><span class="plus">+</span></div>
+    <nav class="tabs"><div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div></nav>
   </div>
   <script src="chest.js"></script>
 </body>
