@@ -14,11 +14,11 @@
 
       <section class="day-card" aria-label="Сейчас">
         <div class="day-head">
-          <div style="flex:1;min-width:0">
+          <div class="day-copy">
             <p class="day-eye">Сейчас · день</p>
-            <p class="day-title">Осталось 458 <span>из 2 100 ккал</span></p>
+            <p class="day-title"><span>Осталось 458</span><span class="rest">из 2 100 ккал</span></p>
           </div>
-          <img src="../../../public/mascot/art/autumn/tip.webp" alt="" />
+          <img class="mascot" src="../../../public/mascot/art/autumn/idle.webp" alt="" />
         </div>
         <div class="kcal-scale" aria-hidden="true"><i style="width:78%"></i></div>
         <div class="macros">
@@ -31,10 +31,13 @@
           <button type="button">Стакан</button>
         </div>
       </section>
-<button class="chest-strip" type="button" aria-label="Сундук">
-        <span class="dots"><i class="dot on"></i><i class="dot wait"></i><i class="dot"></i></span>
-        <span data-chest="common" data-pose="shut"></span>
-        <p>В пятницу был завтрак. Ещё два дня.</p>
+<button class="chest-strip" type="button">
+        <span class="mini-chest " aria-hidden="true"><i class="lid"></i><i class="box"></i><i class="gem"></i></span>
+        <span>
+          <p>В пятницу был завтрак. Ещё два дня.</p>
+          <span class="leafs"><span class="lf on"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/><path d="M12 9v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><small>пт</small></span><span class="lf "><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/><path d="M12 9v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><small>сб</small></span><span class="lf "><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/><path d="M12 9v10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><small>вс</small></span></span>
+        </span>
+        <span class="chev" aria-hidden="true">›</span>
       </button>
       <article class="meal"><div><span>Завтрак</span><b>Сырники со сметаной</b></div><em>420</em></article>
       <article class="meal"><div><span>Обед</span><b>Курица с киноа</b></div><em>610</em></article>

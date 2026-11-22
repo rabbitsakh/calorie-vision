@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Сегодня как в приложении</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="../concept/rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сегодня</h1></header>
+    <p class="date">воскресенье, 22 ноября</p>
+    <div class="scroll">
+      <section class="day-card" aria-label="Сейчас">
+        <div class="day-head">
+          <div class="day-copy">
+            <p class="day-eye">Сейчас · день</p>
+            <p class="day-title"><span>Осталось 458</span><span class="rest">из 2 100 ккал</span></p>
+          </div>
+          <img class="mascot" src="../../../public/mascot/art/autumn/idle.webp" alt="" />
+        </div>
+        <div class="kcal-scale" aria-hidden="true"><i style="width:78%"></i></div>
+        <div class="macros">
+          <div class="macro"><b>Белки</b><i><span style="width:66%;background:#0d7377"></span></i><em>92 из 140 г</em></div>
+          <div class="macro"><b>Жиры</b><i><span style="width:77%;background:#d97706"></span></i><em>54 из 70 г</em></div>
+          <div class="macro"><b>Углеводы</b><i><span style="width:73%;background:#0891b2"></span></i><em>168 из 230 г</em></div>
+        </div>
+        <div class="water-chip">
+          <div><b>Вода</b><span>1,2 из 2,0 л</span></div>
+          <button type="button">Стакан</button>
+        </div>
+      </section>
+      <article class="meal"><div><span>Завтрак</span><b>Сырники со сметаной</b></div><em>420</em></article>
+      <article class="meal"><div><span>Обед</span><b>Курица с киноа</b></div><em>610</em></article>
+      <section class="chest-dock" aria-label="Прогресс сундука">
+        <div class="dock-main">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect x="6" y="14" width="24" height="16" rx="3" fill="#99f6e4" stroke="#134e4a" stroke-width="1.4"/>
+            <rect x="8" y="8" width="20" height="8" rx="2" fill="#ccfbf1" stroke="#134e4a" stroke-width="1.3"/>
+            <circle cx="18" cy="20" r="2.2" fill="#0d7377"/>
+          </svg>
+          <div>
+            <p class="dock-label">Сундук</p>
+            <p class="dock-detail">Ещё 2 дня до сундука</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <div class="composer"><span style="flex:1">Записать еду</span><span class="cam">◉</span><span class="plus">+</span></div>
+    <nav class="tabs"><div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div></nav>
+  </div>
+</body>
+</html>
