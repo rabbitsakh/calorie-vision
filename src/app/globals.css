@@ -7470,6 +7470,31 @@ button.profile-settings__door:disabled {
   align-items: center;
 }
 
+.apk-download {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.apk-download-meta {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  margin: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.landing .apk-download-meta {
+  color: var(--landing-muted);
+  font-size: 0.8rem;
+}
+
 /* FAQ */
 .landing-faq-list {
   display: grid;

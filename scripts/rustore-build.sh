@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lib/rustore-sdk.sh
 source "$ROOT/scripts/lib/rustore-sdk.sh"
+# shellcheck source=lib/publish-hosted-apk.sh
+source "$ROOT/scripts/lib/publish-hosted-apk.sh"
 RUSTORE="$ROOT/rustore"
 ANDROID="$RUSTORE/android"
 DIST="$RUSTORE/dist"
@@ -134,10 +136,7 @@ for f in "${APKS[@]}"; do
     cp -f "$f" "$DIST/app-release.apk"
     APK_OUT="$DIST/app-release.apk"
     echo "==> APK → rustore/dist/app-release.apk"
-    # Host on the landing/install pages (gitignored binary).
-    mkdir -p "$ROOT/public/downloads"
-    cp -f "$APK_OUT" "$ROOT/public/downloads/calorie-vision.apk"
-    echo "==> APK → public/downloads/calorie-vision.apk (лендинг /install)"
+    publish_hosted_apk "$ROOT" "$APK_OUT"
     COPIED=1
     break
   fi

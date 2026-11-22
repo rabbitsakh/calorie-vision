@@ -67,7 +67,7 @@ Bubblewrap зашивает иконки в mipmap при сборке. На And
 git pull origin main
 bash scripts/rustore-build.sh
 # → rustore/dist/app-release.apk
-# → public/downloads/calorie-vision.apk  (кнопка на лендинге и /install)
+# → public/downloads/calorie-vision.apk + apk.json  (кнопка на лендинге и /install)
 ```
 
 Скрипт:
@@ -75,16 +75,18 @@ bash scripts/rustore-build.sh
 - пишет все размеры Bubblewrap (`ic_launcher`, `ic_maskable`, splash, store_icon);
 - фиксирует `manifest-checksum.txt`, чтобы `bubblewrap build` не перетёр иконки;
 - проверяет, что в APK угол иконки — teal A2, не чёрный CV;
-- кладёт APK в `public/downloads/` для кнопки «Скачать APK» на сайте (файл в gitignore).
+- кладёт APK и `apk.json` (версия, дата, размер, sha256) в `public/downloads/` для кнопки «Скачать APK» (оба файла в gitignore).
 4. Загрузите новый APK **и** иконку витрины (`icon-512-store.png`) в [RuStore Консоль](https://console.rustore.ru).
 5. На телефоне: обновление из RuStore **или удалите приложение и поставьте снова** — лаунчер часто кэширует старый ярлык.
-6. На проде APK **не едет через git** (файл в `.gitignore`). После `rustore:cap:build` скопируйте на VPS:
+6. На проде APK **не едет через git** (файл в `.gitignore`). `cv-release` его не собирает и не удаляет. После `rustore:cap:build` или `rustore:build` скопируйте на VPS оба файла:
 
 ```bash
-scp public/downloads/calorie-vision.apk \
-  USER@VPS:/var/www/calorie-vision/public/downloads/calorie-vision.apk
+scp public/downloads/calorie-vision.apk public/downloads/apk.json \
+  USER@VPS:/var/www/calorie-vision/public/downloads/
 # или: npm run rustore:publish-apk   # + DEPLOY_SSH_HOST/USER/KEY
 ```
+
+На `/install` и у «Скачать APK напрямую» появится строка вида «Версия 3.6.15 · 13 ноября 2026». Пока `apk.json` на сервере нет, ссылка работает без номера.
 
 Либо задайте `NEXT_PUBLIC_APK_URL` на CDN/Release.
 

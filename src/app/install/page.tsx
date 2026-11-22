@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ApkDownloadLink } from "@/components/ApkDownloadLink";
 import { InstallPageClient } from "@/components/InstallPageClient";
 import {
   getApkDownloadUrl,
+  getApkManifestUrl,
   getRustoreBadgeUrl,
   getRustoreUrl,
   RUSTORE_BADGE_SRC,
 } from "@/lib/android-install";
+import { readHostedApkReleaseLabel } from "@/lib/read-apk-manifest";
 import { withBasePath } from "@/lib/paths";
 
 export const metadata: Metadata = {
@@ -17,6 +20,8 @@ export const metadata: Metadata = {
 
 export default function InstallPage() {
   const apkUrl = getApkDownloadUrl();
+  const manifestUrl = getApkManifestUrl(apkUrl);
+  const apkLabel = readHostedApkReleaseLabel(apkUrl);
   const rustoreUrl = getRustoreUrl();
   const rustoreBadgeUrl = getRustoreBadgeUrl();
 
@@ -66,15 +71,19 @@ export default function InstallPage() {
           Тот же дневник на телефоне: офлайн-иконка, напоминания и камера. Установите APK
           напрямую — без Google Play.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a href={apkUrl} className="btn btn-primary inline-flex" download>
+        <div className="mt-3">
+          <ApkDownloadLink
+            apkUrl={apkUrl}
+            manifestUrl={manifestUrl}
+            initialLabel={apkLabel}
+            className="btn btn-primary inline-flex"
+          >
             Скачать APK
-          </a>
+          </ApkDownloadLink>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
-          Файл: <code className="text-[var(--muted)]">calorie-vision.apk</code>. После сборки копируется
-          в <code className="text-[var(--muted)]">public/downloads/</code> скриптом{" "}
-          <code className="text-[var(--muted)]">rustore:build</code>.
+          Файл: <code className="text-[var(--muted)]">calorie-vision.apk</code>. Номер и дата берутся из
+          манифеста рядом с ним и обновляются вместе с файлом.
         </p>
       </section>
 

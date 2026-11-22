@@ -8,6 +8,7 @@ node_modules
 public/uploads/*
 !public/uploads/.gitkeep
 public/downloads/*.apk
+public/downloads/apk.json
 !public/downloads/.gitkeep
 eval-fixtures/*
 !eval-fixtures/.gitkeep

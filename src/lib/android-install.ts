@@ -3,6 +3,9 @@ import { withBasePath } from "@/lib/paths";
 /** Default path when APK is copied to `public/downloads/` (see rustore-build.sh). */
 export const DEFAULT_APK_PATH = "/downloads/calorie-vision.apk";
 
+/** Sibling of the hosted APK. Written by the Android build, not by hand in the page. */
+export const DEFAULT_APK_MANIFEST_PATH = "/downloads/apk.json";
+
 /** Direct APK download URL (env override or hosted file under public/). */
 export function getApkDownloadUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APK_URL?.trim();
@@ -13,6 +16,30 @@ export function getApkDownloadUrl(): string {
     return withBasePath(fromEnv.startsWith("/") ? fromEnv : `/${fromEnv}`);
   }
   return withBasePath(DEFAULT_APK_PATH);
+}
+
+/**
+ * Манифест рядом с файлом, на который ведёт ссылка.
+ * Нет `.apk` в пути — версию не к чему привязать.
+ */
+export function getApkManifestUrl(apkUrl = getApkDownloadUrl()): string | null {
+  const trimmed = apkUrl.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      if (!url.pathname.toLowerCase().endsWith(".apk")) return null;
+      url.pathname = url.pathname.replace(/[^/]+$/, "apk.json");
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+  const pathOnly = trimmed.split(/[?#]/)[0] ?? "";
+  if (!pathOnly.toLowerCase().endsWith(".apk")) return null;
+  return pathOnly.replace(/[^/]+$/, "apk.json");
 }
 
 /** Public RuStore catalog card (package `ru.calorievision.app`). */

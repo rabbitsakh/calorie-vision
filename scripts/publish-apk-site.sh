@@ -4,14 +4,15 @@
 # Local / CI secrets:
 #   RUSTORE_KEYSTORE_PASSWORD   (required)
 #   rustore/android.keystore    OR RUSTORE_KEYSTORE_BASE64
-# Optional upload to VPS (APK is gitignored — deploy pull alone will not ship it):
+# Optional upload to VPS (APK и apk.json в gitignore — git pull их не привезёт):
 #   DEPLOY_SSH_HOST / DEPLOY_SSH_USER / DEPLOY_SSH_KEY
 #   DEPLOY_SSH_PATH  (default /var/www/calorie-vision/public/downloads/calorie-vision.apk)
+#   манифест кладётся рядом: …/public/downloads/apk.json
 #
 # Usage:
 #   bash scripts/publish-apk-site.sh
 #   bash scripts/publish-apk-site.sh --build-only
-#   bash scripts/publish-apk-site.sh --upload-only   # needs public/downloads/calorie-vision.apk
+#   bash scripts/publish-apk-site.sh --upload-only   # нужен public/downloads/calorie-vision.apk
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -28,7 +29,7 @@ for arg in "$@"; do
     --build-only) MODE="build" ;;
     --upload-only) MODE="upload" ;;
     -h|--help)
-      sed -n '2,16p' "$0"
+      sed -n '2,15p' "$0"
       exit 0
       ;;
   esac
@@ -81,11 +82,21 @@ upload_apk() {
   local user="${DEPLOY_SSH_USER:-}"
   local key="${DEPLOY_SSH_KEY:-}"
   local remote="${DEPLOY_SSH_PATH:-/var/www/calorie-vision/public/downloads/calorie-vision.apk}"
+  local remote_json
+  remote_json="$(dirname "$remote")/apk.json"
+  local src_json
+  src_json="$(dirname "$src")/apk.json"
+  if [[ ! -f "$src_json" && -f "$ROOT/public/downloads/apk.json" ]]; then
+    src_json="$ROOT/public/downloads/apk.json"
+  fi
 
   if [[ -z "$host" || -z "$user" ]]; then
     echo "DEPLOY_SSH_HOST / DEPLOY_SSH_USER не заданы — пропускаю upload." >&2
     echo "Скопируйте вручную:" >&2
     echo "  scp $src USER@HOST:$remote" >&2
+    if [[ -f "$src_json" ]]; then
+      echo "  scp $src_json USER@HOST:$remote_json" >&2
+    fi
     exit 2
   fi
 
@@ -117,12 +128,31 @@ upload_apk() {
     -o StrictHostKeyChecking=accept-new \
     "$src" "${user}@${host}:$remote"
 
+  if [[ -f "$src_json" ]]; then
+    echo "==> scp → ${user}@${host}:$remote_json"
+    scp -i "$keyfile" \
+      -o IdentitiesOnly=yes \
+      -o StrictHostKeyChecking=accept-new \
+      "$src_json" "${user}@${host}:$remote_json"
+  else
+    echo "Нет apk.json рядом с APK — на сайте будет ссылка без версии." >&2
+    echo "Пересоберите: npm run rustore:cap:build (пишет и файл, и манифест)." >&2
+  fi
+
   echo "==> verify remote size"
-  ssh -i "$keyfile" \
-    -o IdentitiesOnly=yes \
-    -o StrictHostKeyChecking=accept-new \
-    "${user}@${host}" \
-    "ls -lh \"$remote\" && file \"$remote\""
+  if [[ -f "$src_json" ]]; then
+    ssh -i "$keyfile" \
+      -o IdentitiesOnly=yes \
+      -o StrictHostKeyChecking=accept-new \
+      "${user}@${host}" \
+      "ls -lh \"$remote\" \"$remote_json\" && file \"$remote\""
+  else
+    ssh -i "$keyfile" \
+      -o IdentitiesOnly=yes \
+      -o StrictHostKeyChecking=accept-new \
+      "${user}@${host}" \
+      "ls -lh \"$remote\" && file \"$remote\""
+  fi
 
   echo "==> done. Check https://calorievision.ru/downloads/calorie-vision.apk"
 }
