@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Сегодня — один листок</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сегодня</h1></header>
+    <p class="date">воскресенье, 22 ноября</p>
+    <div class="scroll">
+      <section class="hero" style="padding-top:0">
+        <div>
+          <p class="eyebrow">1 642 ккал · 78% цели</p>
+          <div class="kcal" style="font-size:18px">Кладовая</div>
+          <p class="sub">пропустил день — листки остаются</p>
+        </div>
+        <img class="pear" src="../../../public/mascot/art/autumn/idle.webp" alt="" style="width:92px;height:92px" />
+      </section>
+        <section class="pantry hot" aria-label="Один листок из трёх">
+        <p class="kicker">Уже есть один</p>
+        <h2>Первый листок на месте</h2>
+        <p class="rule">Ещё два таких дня — и сундук твой.</p>
+        <div class="leaves">
+          <div class="leaf-col">
+            <div class="leaf lit"><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#083f3c" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Пт</b><span>еда</span>
+          </div>
+          <div class="leaf-col">
+            <div class="leaf"><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#7d9c98" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#5a635c" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Сб</b><span>тихо</span>
+          </div>
+          <div class="leaf-col">
+            <div class="leaf next"><i class="ping"></i><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#d97706" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#7c4a03" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Сегодня</b><span>ждёт тебя</span>
+          </div>
+        </div>
+        <div class="todo">
+          <b>Сегодня хватит одного</b>
+          <span>Запиши, что съел, или сходи в зал.</span>
+        </div>
+        <div class="chest-row">
+          <div data-chest="rare" data-pose="shut"></div>
+          <p>Сделаешь и то и другое — сундук будет поинтереснее.</p>
+        </div>
+        <div class="week-line"><span>На неделе уже четыре хороших дня</span><i>ещё один — подарок</i></div>
+      </section>
+    </div>
+    <div class="composer"><span style="flex:1">Записать еду</span><span class="cam">◉</span><span class="plus">+</span></div>
+    <nav class="tabs">
+      <div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div>
+    </nav>
+  </div>
+  <script src="chest.js"></script>
+</body>
+</html>
