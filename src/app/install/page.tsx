@@ -76,7 +76,7 @@ export default function InstallPage() {
             apkUrl={apkUrl}
             manifestUrl={manifestUrl}
             initialLabel={apkLabel}
-            className="btn btn-primary inline-flex"
+            className="btn btn-primary"
           >
             Скачать APK
           </ApkDownloadLink>

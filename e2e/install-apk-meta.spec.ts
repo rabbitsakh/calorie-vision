@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const WITH_VERSION = {
   versionName: "3.6.15",
@@ -15,6 +15,19 @@ async function dismissCookies(page: Page) {
   if (await decline.isVisible().catch(() => false)) {
     await decline.click();
   }
+}
+
+/** Подпись <a class="btn"> должна быть по вертикали в середине 56px, а не у верхнего края. */
+async function expectLabelCentered(locator: Locator) {
+  await expect(locator).toBeVisible();
+  const delta = await locator.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const text = range.getBoundingClientRect();
+    return Math.abs(box.top + box.height / 2 - (text.top + text.height / 2));
+  });
+  expect(delta).toBeLessThan(4);
 }
 
 test.describe("прямая загрузка APK на /install", () => {
@@ -49,11 +62,30 @@ test.describe("прямая загрузка APK на /install", () => {
     await expect(page.getByRole("link", { name: "Скачать APK" })).toBeVisible();
     await expect(page.getByTestId("apk-release-meta")).toHaveText(LABEL);
     await dismissCookies(page);
+    for (const name of ["Скачать APK", "Открыть рацион", "На главную"]) {
+      await expectLabelCentered(page.getByRole("link", { name }));
+    }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(1);
     const shot = process.env.APK_META_SCREENSHOT_DIR;
     if (shot) {
       await page.screenshot({ path: `${shot}/install-apk-with-version-390.png`, fullPage: true });
+    }
+  });
+});
+
+test.describe("кнопки-ссылки на лендинге", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("подписи главных кнопок по вертикали в центре", async ({ page }) => {
+    await page.goto("/");
+    await dismissCookies(page);
+    for (const name of ["Начать бесплатно", "Попробовать без входа"]) {
+      await expectLabelCentered(page.getByRole("link", { name }).first());
+    }
+    const shot = process.env.APK_META_SCREENSHOT_DIR;
+    if (shot) {
+      await page.locator(".landing-cta").first().screenshot({ path: `${shot}/landing-cta-after-390.png` });
     }
   });
 });

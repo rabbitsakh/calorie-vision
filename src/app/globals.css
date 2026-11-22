@@ -534,6 +534,20 @@ select {
     transform var(--motion-fast) var(--motion-ease);
 }
 
+/*
+ * У <button> подпись центрирует браузер. У <a class="btn"> — нет:
+ * min-height 56px и нулевой вертикальный padding оставляют строку у верхнего края.
+ * Так ведут себя и inline-flex без align-items, и ссылка внутри flex-ряда.
+ */
+a.btn,
+a.ds-btn {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  line-height: 1.2;
+  text-align: center;
+}
+
 .btn:hover:not(:disabled) {
   opacity: 0.94;
 }
