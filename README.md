@@ -378,6 +378,15 @@ DEPLOY_FORCE_STOP=1 cv-release --deploy-only   # старый режим: stop �
 
 Симлинк (не копия): `sudo ln -sf /var/www/calorie-vision/deploy/release.sh /usr/local/bin/cv-release`.
 
+Кнопка «Скачать APK» берёт файл `public/downloads/calorie-vision.apk`. Он и `public/downloads/apk.json` в git не входят: `cv-release` их не собирает и не удаляет. Новая сборка на прод — отдельно, после `npm run rustore:cap:build` (или `rustore:build`):
+
+```bash
+npm run rustore:publish-apk -- --upload-only
+# либо scp обоих файлов в /var/www/calorie-vision/public/downloads/
+```
+
+`apk.json` (versionName, versionCode, дата, размер, sha256) пишется тем же шагом. Пока его нет, ссылка открывается как раньше, без номера версии.
+
 Если деплой «висит» на npm install: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` всегда ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (даже при `SENTRY_AUTH_TOKEN` в `.env`). Явно разрешить CLI: `DEPLOY_SENTRY_CLI=1`. Долгие шаги показывают секунды на шкале (`npm install (45с)`); таймаут по умолчанию 10 мин (`DEPLOY_NPM_TIMEOUT=600`).
 
 ### 5. Nginx

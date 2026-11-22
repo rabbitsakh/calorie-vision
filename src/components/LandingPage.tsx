@@ -7,12 +7,15 @@ import { LandingShell } from "@/components/LandingShell";
 import { LandingStatsStrip } from "@/components/LandingStatsStrip";
 import { LandingTopNav } from "@/components/LandingTopNav";
 import { LandingTrustBand } from "@/components/LandingTrustBand";
+import { ApkDownloadLink } from "@/components/ApkDownloadLink";
 import {
   getApkDownloadUrl,
+  getApkManifestUrl,
   getRustoreBadgeUrl,
   getRustoreUrl,
   RUSTORE_BADGE_SRC,
 } from "@/lib/android-install";
+import { readHostedApkReleaseLabel } from "@/lib/read-apk-manifest";
 import { withBasePath } from "@/lib/paths";
 
 /** Product diary mockup in the hero. */
@@ -198,6 +201,8 @@ function RustoreBadgeLink({ className = "" }: { className?: string }) {
 /** Android: RuStore first, APK fallback — only under #install. */
 function AndroidApkCta() {
   const apkUrl = getApkDownloadUrl();
+  const manifestUrl = getApkManifestUrl(apkUrl);
+  const apkLabel = readHostedApkReleaseLabel(apkUrl);
   const rustoreUrl = getRustoreUrl();
 
   return (
@@ -214,9 +219,14 @@ function AndroidApkCta() {
       </div>
       <div className="landing-apk-actions">
         {rustoreUrl ? <RustoreBadgeLink /> : null}
-        <a href={apkUrl} className="landing-cta-secondary" download>
+        <ApkDownloadLink
+          apkUrl={apkUrl}
+          manifestUrl={manifestUrl}
+          initialLabel={apkLabel}
+          className="landing-cta-secondary"
+        >
           Скачать APK напрямую
-        </a>
+        </ApkDownloadLink>
         {!rustoreUrl ? (
           <a href="/install" className="landing-cta-secondary">
             Подробнее про установку

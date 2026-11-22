@@ -3,10 +3,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, test } from "node:test";
 import {
+  DEFAULT_APK_MANIFEST_PATH,
   DEFAULT_APK_PATH,
   DEFAULT_RUSTORE_URL,
   RUSTORE_PACKAGE_ID,
   getApkDownloadUrl,
+  getApkManifestUrl,
   getRustoreBadgeUrl,
   getRustoreUrl,
 } from "./android-install.ts";
@@ -50,6 +52,25 @@ test("getApkDownloadUrl defaults to public downloads path", () => {
 test("getApkDownloadUrl respects absolute CDN override", () => {
   process.env.NEXT_PUBLIC_APK_URL = "https://cdn.example/app.apk";
   assert.equal(getApkDownloadUrl(), "https://cdn.example/app.apk");
+});
+
+test("getApkManifestUrl points at the sibling of the hosted APK", () => {
+  delete process.env.NEXT_PUBLIC_APK_URL;
+  delete process.env.NEXT_PUBLIC_BASE_PATH;
+  assert.equal(getApkManifestUrl(), DEFAULT_APK_MANIFEST_PATH);
+});
+
+test("getApkManifestUrl keeps the directory when the APK path already has a base", () => {
+  assert.equal(getApkManifestUrl("/cv/downloads/calorie-vision.apk"), "/cv/downloads/apk.json");
+});
+
+test("getApkManifestUrl uses apk.json next to a CDN apk", () => {
+  process.env.NEXT_PUBLIC_APK_URL = "https://cdn.example/releases/app.apk?dl=1";
+  assert.equal(getApkManifestUrl(), "https://cdn.example/releases/apk.json");
+});
+
+test("getApkManifestUrl is null when the download URL is not an apk", () => {
+  assert.equal(getApkManifestUrl("https://cdn.example/app"), null);
 });
 
 test("getRustoreUrl defaults to published catalog card", () => {

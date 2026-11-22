@@ -59,7 +59,11 @@ if [[ "${CV_RELEASE_REEXEC:-}" != "1" ]]; then
   cd "$APP_DIR"
   # shellcheck source=deploy/git-gate.sh
   source "$APP_DIR/deploy/git-gate.sh"
-  if ! ensure_ff_origin_main; then
+  # shellcheck source=deploy/hosted-apk.sh
+  source "$APP_DIR/deploy/hosted-apk.sh"
+  # Сайт обновляется из git. APK и apk.json туда не входят — не даём pull их стереть.
+  if ! pull_origin_keeping_hosted_apk "$APP_DIR"; then
+    rm -rf "${CV_HOSTED_APK_SNAPSHOT:-}"
     exit 1
   fi
   if [[ ! -f "$RELEASE_SH" ]]; then
@@ -67,6 +71,7 @@ if [[ "${CV_RELEASE_REEXEC:-}" != "1" ]]; then
     exit 1
   fi
   export CV_RELEASE_REEXEC=1
+  export CV_HOSTED_APK_SNAPSHOT
   exec bash "$RELEASE_SH" "$@"
 fi
 

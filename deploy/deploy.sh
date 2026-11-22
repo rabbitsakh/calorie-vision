@@ -10,6 +10,18 @@ DEPLOY_LOG="${DEPLOY_LOG:-/tmp/cv-deploy-$$.log}"
 
 # shellcheck source=deploy/git-gate.sh
 source "$APP_DIR/deploy/git-gate.sh"
+# shellcheck source=deploy/hosted-apk.sh
+source "$APP_DIR/deploy/hosted-apk.sh"
+
+# Снимок APK живёт до конца процесса. exec в новый deploy.sh ловушку не вызывает,
+# каталог остаётся в CV_HOSTED_APK_SNAPSHOT и подчищается уже там.
+cleanup_hosted_apk_snapshot() {
+  if [[ -n "${CV_HOSTED_APK_SNAPSHOT:-}" && -d "${CV_HOSTED_APK_SNAPSHOT}" ]]; then
+    hosted_apk_restore_if_missing "$APP_DIR" "$CV_HOSTED_APK_SNAPSHOT" || true
+    rm -rf "$CV_HOSTED_APK_SNAPSHOT"
+  fi
+}
+trap cleanup_hosted_apk_snapshot EXIT
 
 restore_generated_version_files() {
   restore_deploy_generated_files
@@ -19,10 +31,11 @@ restore_generated_version_files() {
 # re-exec once so the quiet progress UI from main actually runs this time.
 # Неудачный pull здесь останавливает скрипт: старый код не собираем и pm2 не трогаем.
 if [[ "${CV_DEPLOY_REEXEC:-}" != "1" ]]; then
-  if ! ensure_ff_origin_main; then
+  if ! pull_origin_keeping_hosted_apk "$APP_DIR"; then
     exit 1
   fi
   export CV_DEPLOY_REEXEC=1
+  export CV_HOSTED_APK_SNAPSHOT
   export DEPLOY_LOG
   exec bash "$APP_DIR/deploy/deploy.sh"
 fi
@@ -438,8 +451,14 @@ swap_next_build() {
 
 progress 2 "Pull"
 # Повторная проверка после re-exec. Провал — выход до npm/build/pm2.
-if ! ensure_ff_origin_main; then
+# APK в public/downloads git не везёт: если pull его не снёс, файл остаётся как был.
+if ! pull_origin_keeping_hosted_apk "$APP_DIR"; then
   exit 1
+fi
+if [[ -f public/downloads/calorie-vision.apk ]]; then
+  echo "hosted apk kept ($(wc -c < public/downloads/calorie-vision.apk | tr -d ' ') bytes)" >>"$DEPLOY_LOG"
+else
+  echo "hosted apk absent — ссылка /downloads/calorie-vision.apk без файла, версию не показываем" >>"$DEPLOY_LOG"
 fi
 
 progress 8 "Node"

@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=lib/rustore-sdk.sh
 source "$ROOT/scripts/lib/rustore-sdk.sh"
+# shellcheck source=lib/publish-hosted-apk.sh
+source "$ROOT/scripts/lib/publish-hosted-apk.sh"
 
 ANDROID="$ROOT/android"
 DIST="$ROOT/rustore/dist"
@@ -87,8 +89,7 @@ echo "==> raw APK: $APK_RAW"
 OUT_APK="$DIST/app-release.apk"
 rustore_sign_apk "$APK_RAW" "$OUT_APK" "$KEYSTORE"
 
-mkdir -p "$ROOT/public/downloads"
-cp -f "$OUT_APK" "$ROOT/public/downloads/calorie-vision.apk"
+publish_hosted_apk "$ROOT" "$OUT_APK"
 
 echo "==> APK: $OUT_APK"
 if command -v stat >/dev/null 2>&1; then

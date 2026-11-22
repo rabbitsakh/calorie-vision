@@ -31,6 +31,14 @@ const nextConfig = {
     NEXT_PUBLIC_APP_VERSION: appVersion,
     NEXT_PUBLIC_APP_COMMIT: appCommit,
   },
+  async headers() {
+    return [
+      {
+        source: "/downloads/apk.json",
+        headers: [{ key: "Cache-Control", value: "no-cache, must-revalidate" }],
+      },
+    ];
+  },
 };
 
 const sentryEnabled = Boolean(
