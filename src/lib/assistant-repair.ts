@@ -30,6 +30,9 @@ import {
   parseMealTypeKey,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { expandFoodQueries, gramsPerPiece, parsePieceCountFromMessage } from "@/lib/piece-portion";
+
+export { parsePieceCountFromMessage };
 import {
   LEAN_FOOD_DENSITY_CAP,
   looksEnergyDenseFood,
@@ -620,19 +623,6 @@ export function parseDrinkVolumeMl(message: string): number | null {
   return Math.round(n * 1000);
 }
 
-function typicalPieceGrams(dishName: string): number | null {
-  const name = dishName.toLowerCase().replace(/ё/g, "е");
-  if (/пельмен/.test(name)) return 15;
-  if (/вареник/.test(name)) return 25;
-  if (/сырник/.test(name)) return 70;
-  if (/пицц/.test(name)) return 100;
-  if (/блин/.test(name)) return 50;
-  if (/яйц/.test(name)) return 55;
-  if (/банан/.test(name)) return 120;
-  if (/яблок/.test(name)) return 180;
-  return null;
-}
-
 type TablePack = NonNullable<ReturnType<typeof lookupRuNutritionTable>>;
 
 /**
@@ -688,17 +678,13 @@ export function estimateOfflineFoodPhrase(phrase: string): OfflineFoodEstimate |
   const drinkMl = explicitGrams == null && drinkQ ? parseDrinkVolumeMl(phrase) : null;
   const grams = explicitGrams ?? drinkMl;
   const pieces = grams == null ? parsePieceCountFromMessage(phrase) : null;
-  const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
-  const perPiece =
-    pieceWeight == null && pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
+  const pieceWeight = pieces != null ? gramsPerPiece(pack.dishName, baseGrams) : null;
   const portion =
     grams != null
       ? grams
       : pieceWeight != null && pieces != null
         ? pieceWeight * pieces
-        : perPiece && pieces != null
-          ? Math.round(baseGrams * pieces)
-          : baseGrams;
+        : baseGrams;
   const unit = drinkQ || /мл|литр|\bл\b/i.test(phrase) ? "мл" : "г";
   return {
     dishName: pack.dishName,
@@ -986,15 +972,13 @@ function mealLineFromFragment(
   if (kcal == null && pack) {
     pricedFromTable = true;
     const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-    const pieceWeight = pieces != null ? typicalPieceGrams(pack.dishName) : null;
+    const pieceWeight = pieces != null ? gramsPerPiece(pack.dishName, baseGrams) : null;
     const scaledPortion =
       portion != null && portion > 0
         ? portion
         : pieceWeight != null && pieces != null
           ? pieceWeight * pieces
-          : pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName)
-            ? Math.round(baseGrams * pieces)
-            : baseGrams;
+          : baseGrams;
     const scaled = nutritionFromPack(pack, scaledPortion);
     kcal = scaled.kcal;
     protein = scaled.protein;
@@ -1034,7 +1018,7 @@ function mealLineFromFragment(
     pieces != null &&
     pieces > 1 &&
     !alreadyPieces &&
-    packLooksPerPiece(pack?.dishName ?? baseName)
+    gramsPerPiece(pack?.dishName ?? baseName, pack?.portionGrams) != null
   ) {
     name = `${name} (${pieces} шт)`;
   }
@@ -1245,39 +1229,6 @@ function mealMetaFromMessage(
   };
 }
 
-/** «4 варёных яйца», «яйца 3 шт» → piece count for per-item staples. */
-export function parsePieceCountFromMessage(text: string): number | null {
-  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
-  const withUnit = new RegExp(
-    String.raw`(\d+)\s*(?:шт(?:ук[аи]?)?\.?)${end}`,
-    "iu",
-  ).exec(text);
-  if (withUnit?.[1]) {
-    const n = Number(withUnit[1]);
-    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
-  }
-  // Count glued to a piece food: «4 варёных яйца», «2 банана».
-  // «яйц» записан экранированием: буква «и» вместо «й» не ловит «яйца» после «съел».
-  const beforeFood = new RegExp(
-    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+|куск\p{L}*\s+)?(?:\u044f\u0439\u0446\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*|пельмен\p{L}*|сырник\p{L}*|пицц\p{L}*|блин\p{L}*)`,
-    "iu",
-  ).exec(text);
-  if (beforeFood?.[1]) {
-    const n = Number(beforeFood[1]);
-    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
-  }
-  // Leading count before any food word: «4 варёных…».
-  const leading = /^\s*(\d+)\s+(?=\p{L})/u.exec(text.trim());
-  if (leading?.[1]) {
-    const n = Number(leading[1]);
-    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
-  }
-  return null;
-}
-
-function packLooksPerPiece(dishName: string): boolean {
-  return /яйц|сырок|банан|яблоко|апельсин|мандарин|сосиск|котлет/i.test(dishName);
-}
 
 function unparsedMealRows(missed: string[], note?: string): ParsedMealLine[] {
   const rows: ParsedMealLine[] = [];
@@ -1498,7 +1449,7 @@ function foodLookupQueries(userMessage: string): string[] {
     })
     .join(" ")
     .trim();
-  return [...new Set([cleaned, nominative, userMessage.trim()].filter((query) => query.length >= 3))];
+  return expandFoodQueries([cleaned, nominative, userMessage.trim()]);
 }
 
 /**

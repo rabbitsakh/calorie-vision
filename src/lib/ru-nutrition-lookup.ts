@@ -52,7 +52,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   },
   { keys: ["макароны", "паста"], dishName: "Макароны отварные", calories: 280, protein: 9, fat: 2, carbs: 56, portionGrams: 200 },
   { keys: ["картофель", "картофельное пюре", "пюре"], dishName: "Картофельное пюре", calories: 240, protein: 5, fat: 8, carbs: 36, portionGrams: 200 },
-  { keys: ["котлета", "котлета куриная", "куриная котлета"], dishName: "Котлета куриная", calories: 280, protein: 22, fat: 16, carbs: 12, portionGrams: 120 },
+  { keys: ["котлета", "котлета куриная", "куриная котлета", "куриные котлеты", "котлеты куриные"], dishName: "Котлета куриная", calories: 280, protein: 22, fat: 16, carbs: 12, portionGrams: 120 },
   // Без способа готовки — сырая или варёная без кожи ~112 ккал/100 г. Жареная — отдельная строка.
   {
     keys: [
@@ -244,10 +244,37 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["оливье", "салат оливье"], dishName: "Салат оливье", calories: 380, protein: 8, fat: 28, carbs: 24, portionGrams: 200 },
   { keys: ["винегрет"], dishName: "Винегрет", calories: 180, protein: 3, fat: 10, carbs: 18, fiber: 4, portionGrams: 200 },
   { keys: ["пельмени", "пельмени домашние"], dishName: "Пельмени", calories: 520, protein: 22, fat: 24, carbs: 52, portionGrams: 250 },
-  { keys: ["вареники", "вареники с творогом"], dishName: "Вареники с творогом", calories: 380, protein: 14, fat: 10, carbs: 58, portionGrams: 200 },
-  { keys: ["блины", "блин", "блины с творогом"], dishName: "Блины", calories: 320, protein: 10, fat: 12, carbs: 42, portionGrams: 150 },
+  { keys: ["вареники", "вареники с творогом", "вареник с творогом", "вареника с творогом"], dishName: "Вареники с творогом", calories: 380, protein: 14, fat: 10, carbs: 58, portionGrams: 200 },
+  { keys: ["блины", "блин", "блина", "блинчик", "блинчики", "блинчика"], dishName: "Блины", calories: 320, protein: 10, fat: 12, carbs: 42, portionGrams: 150 },
+  {
+    // Одна штука ≈ 80 г, 150–200 ккал. 4·9 + 9·7 + 4·18 = 171.
+    keys: [
+      "блинчик с творогом",
+      "блинчики с творогом",
+      "блинчика с творогом",
+      "блинчиков с творогом",
+      "блины с творогом",
+      "блин с творогом",
+    ],
+    dishName: "Блинчики с творогом",
+    calories: 171,
+    protein: 9,
+    fat: 7,
+    carbs: 18,
+    portionGrams: 80,
+  },
+  {
+    // Одна оладья ≈ 50 г. 4·3,5 + 9·4 + 4·12 = 98.
+    keys: ["оладьи", "оладья", "оладушки", "оладушек", "оладий"],
+    dishName: "Оладьи",
+    calories: 98,
+    protein: 3.5,
+    fat: 4,
+    carbs: 12,
+    portionGrams: 50,
+  },
   // 150 г ≈ две штуки по 70 г. Ккал = Атуотер Б18 Ж14 У36.
-  { keys: ["сырники", "сырник", "сырника"], dishName: "Сырники", calories: 342, protein: 18, fat: 14, carbs: 36, portionGrams: 150 },
+  { keys: ["сырники", "сырник", "сырника", "сырников"], dishName: "Сырники", calories: 342, protein: 18, fat: 14, carbs: 36, portionGrams: 150 },
   { keys: ["хлеб", "хлеб белый", "батон"], dishName: "Хлеб белый", calories: 160, protein: 5, fat: 1, carbs: 32, portionGrams: 60 },
   { keys: ["бутерброд", "бутер"], dishName: "Бутерброд с колбасой", calories: 280, protein: 12, fat: 14, carbs: 26, portionGrams: 100 },
   { keys: ["плов", "плов с говядиной"], dishName: "Плов с говядиной", calories: 560, protein: 26, fat: 22, carbs: 58, portionGrams: 300 },
