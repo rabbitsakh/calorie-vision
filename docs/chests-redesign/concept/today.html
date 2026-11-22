@@ -2,58 +2,57 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>Сегодня — прогресс к сундуку</title>
+  <title>Сегодня — почти сундук</title>
   <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
 </head>
 <body>
   <div class="phone">
     <header class="top"><h1>Сегодня</h1></header>
     <p class="date">воскресенье, 22 ноября</p>
     <div class="scroll">
-      <section class="hero">
+      <section class="hero" style="padding-top:0">
         <div>
-          <p class="eyebrow">Записано 78% цели</p>
-          <div class="kcal">1 642</div>
-          <p class="sub">цель 2 100 · белок в норме</p>
+          <p class="eyebrow">1 642 ккал · 78% цели</p>
+          <div class="kcal" style="font-size:18px">Кладовая</div>
+          <p class="sub">листья не сгорают, если пропустить день</p>
         </div>
+        <img class="pear" src="../../../public/mascot/art/autumn/idle.webp" alt="" style="width:92px;height:92px" />
       </section>
-      <section class="pantry" aria-label="Прогресс к сундуку">
-        <p class="eyebrow">Кладовая груши</p>
-        <h2>Ещё один живой день</h2>
-        <p class="rule">Тарелка или зал. Три живых дня — сундук.</p>
-        <div class="sparks" aria-label="2 из 3">
-          <div class="spark on" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24"><path fill="#fff" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#0a5c5f" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+      <section class="pantry hot" aria-label="Почти сундук, 2 из 3">
+        <p class="kicker">Почти · 2 из 3</p>
+        <h2>Остался один лист</h2>
+        <p class="rule">Тарелка или зал. Третий лист — и сундук сегодня.</p>
+        <div class="leaves">
+          <div class="leaf-col">
+            <div class="leaf lit"><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#083f3c" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Пт</b><span>тарелка</span>
           </div>
-          <div class="spark on" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24"><path fill="#fff" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#0a5c5f" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+          <div class="leaf-col">
+            <div class="leaf lit"><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#fff" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#083f3c" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Сб</b><span>зал</span>
           </div>
-          <div class="spark" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24"><path fill="#0d7377" opacity=".4" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#0d7377" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".55"/></svg>
+          <div class="leaf-col">
+            <div class="leaf next"><i class="ping"></i><svg width="38" height="38" viewBox="0 0 64 64"><path fill="#d97706" d="M32 8c12 10 18 18 18 30a18 18 0 0 1-36 0c0-12 6-20 18-30z"/><path d="M32 22v30M24 36c5-3 6-6 8-12M40 36c-5-3-6-6-8-12" stroke="#7c4a03" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg></div>
+            <b>Сегодня</b><span>ещё нет</span>
           </div>
         </div>
-        <div class="facts">
-          <span class="fact">Тарелка есть</span>
-          <span class="fact wait">Зал усилит редкость</span>
+        <div class="todo">
+          <b>Сегодня осталось одно</b>
+          <span>Запись еды от 80 ккал или тренировка с рабочим подходом.</span>
         </div>
-        <img class="mascot" src="../../../public/mascot/art/autumn/idle.webp" alt="" />
+        <div class="chest-row">
+          <div data-chest="rare" data-pose="shut"></div>
+          <p>Если сделать и еду, и зал, этот сундук станет редким: лак и светящийся камень.</p>
+        </div>
+        <div class="week-line"><span>Неделя · 4 из 5 живых дней</span><i>полка в воскресенье</i></div>
       </section>
-      <article class="meal">
-        <div><span>Завтрак</span><b>Сырники со сметаной</b></div>
-        <em>420</em>
-      </article>
-      <article class="meal">
-        <div><span>Обед</span><b>Курица с киноа</b></div>
-        <em>610</em>
-      </article>
     </div>
     <div class="composer"><span style="flex:1">Записать еду</span><span class="cam">◉</span><span class="plus">+</span></div>
     <nav class="tabs">
-      <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Сегодня</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16c2-4 4-8 6-8s2 6 4 8"/></svg>Зал</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/></svg>Прогресс</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/></svg>Я</div>
+      <div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div>
     </nav>
   </div>
+  <script src="chest.js"></script>
 </body>
 </html>

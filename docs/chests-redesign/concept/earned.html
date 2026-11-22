@@ -4,41 +4,34 @@
   <meta charset="utf-8" />
   <title>Сундук получен</title>
   <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
 </head>
 <body>
   <div class="phone">
     <header class="top"><h1>Сегодня</h1></header>
-    <p class="date">воскресенье, 22 ноября</p>
+    <p class="date">воскресенье, 22 ноября · комбо</p>
     <div class="scroll">
-      <section class="pantry" style="padding-bottom:18px">
-        <p class="eyebrow">Кладовая полная</p>
-        <h2>Сундук груши готов</h2>
-        <p class="rule">Три живых дня собраны. Комбо сегодня сделает награду реже.</p>
-        <div class="sparks">
-          <div class="spark gold"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="#fff" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#7c4a03" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>
-          <div class="spark gold"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="#fff" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#7c4a03" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>
-          <div class="spark gold"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="#fff" d="M6 8.2a7 7 0 0 0 0 9.6C8.7 20.5 14.4 21 19 21c0-4.6-.4-10.3-3.1-13a7 7 0 0 0-9.9.2z"/><path d="M8.2 16.2c2.2-1.2 5-4 7.6-7.4" stroke="#7c4a03" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>
+      <section class="pantry hot">
+        <p class="kicker">Три из трёх · редкий</p>
+        <h2>Сундук готов</h2>
+        <p class="rule">Еда и зал в один день. Откроется лаковый, не деревянный.</p>
+        <div class="leaves">
+          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 6C16 26 10 34 12 46c2 12 12 14 20 14s18-2 20-14c2-12-4-20-20-40z"/></svg></div><b>Пт</b><span>тарелка</span></div>
+          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 6C16 26 10 34 12 46c2 12 12 14 20 14s18-2 20-14c2-12-4-20-20-40z"/></svg></div><b>Сб</b><span>зал</span></div>
+          <div class="leaf-col"><div class="leaf gold"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 6C16 26 10 34 12 46c2 12 12 14 20 14s18-2 20-14c2-12-4-20-20-40z"/></svg></div><b>Вс</b><span>комбо</span></div>
         </div>
-        <div class="facts">
-          <span class="fact">Пт тарелка</span>
-          <span class="fact">Сб зал</span>
-          <span class="fact">Вс комбо</span>
+        <div class="chest-row" style="margin-top:14px">
+          <div data-chest="rare" data-pose="shut" class="lg"></div>
+          <p>Груша уже держит крышку. Редкий камень светится, потому что сегодня и тарелка, и зал.</p>
         </div>
         <button class="open-btn" type="button">Открыть сундук</button>
-        <img class="mascot" src="../../../public/mascot/art/autumn/cheer.webp" alt="" />
+        <img class="mascot" src="../../../public/mascot/art/autumn/cheer.webp" alt="" style="width:96px;height:96px;top:4px" />
       </section>
-      <article class="meal">
-        <div><span>Сегодня · комбо</span><b>Еда записана, тренировка закрыта</b></div>
-        <em>комбо</em>
-      </article>
     </div>
-    <div class="composer"><span style="flex:1">Записать еду</span><span class="cam">◉</span><span class="plus">+</span></div>
     <nav class="tabs">
-      <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Сегодня</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16c2-4 4-8 6-8s2 6 4 8"/></svg>Зал</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/></svg>Прогресс</div>
-      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/></svg>Я</div>
+      <div class="tab on">Сегодня</div><div class="tab">Зал</div><div class="tab">Прогресс</div><div class="tab">Я</div>
     </nav>
   </div>
+  <script src="chest.js"></script>
 </body>
 </html>

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Три редкости сундука</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сундуки</h1></header>
+    <p class="date">один и тот же предмет, три материала</p>
+    <div class="scroll" style="gap:14px">
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="common" data-pose="shut" class="lg"></div>
+        <div>
+          <p class="kicker">Обычный</p>
+          <h2 style="font-size:20px">Дерево и латунь</h2>
+          <p class="rule">Дневной сундук без комбо. Тёплый ящик, без сияния камня.</p>
+        </div>
+      </section>
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="rare" data-pose="shut" class="lg"></div>
+        <div>
+          <p class="kicker">Редкий</p>
+          <h2 style="font-size:20px">Лак и янтарь</h2>
+          <p class="rule">Комбо еда+зал поднимает дневной сундук сюда. Камень светится.</p>
+        </div>
+      </section>
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="festive" data-pose="open" class="lg"></div>
+        <div>
+          <p class="kicker" style="background:#9a3412">Праздничный</p>
+          <h2 style="font-size:20px">Золото сезона</h2>
+          <p class="rule">Неделя с двумя комбо или финал сезона. Крышка уже открыта.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="chest.js"></script>
+</body>
+</html>

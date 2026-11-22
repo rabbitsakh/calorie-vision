@@ -2,51 +2,43 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>Коллекция наград</title>
+  <title>Полка коллекции</title>
   <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
 </head>
 <body>
   <div class="phone show">
     <header class="show-head">
-      <h1>Кладовая</h1>
-      <p>6 из 18 · одежда груши, темы и значки. Платного здесь нет.</p>
+      <h1>Полка осени</h1>
+      <p>7 из 12 вещей сезона. Силуэт — то, что ещё не выпало. Финал ждёт 8 вещей и 4 недели.</p>
     </header>
-    <div class="wear-row">
-      <img src="../../../public/mascot/art/autumn/idle.webp" alt="" />
-      <div>
-        <b>Сейчас на груше</b>
-        <span>Осенний шарф · золотой лист ещё не надет</span>
+    <div style="margin:10px 16px 0">
+      <div class="bar" aria-label="7 из 12"><i style="width:58%"></i></div>
+    </div>
+    <section class="shelf">
+      <h3>На груше</h3>
+      <div class="shelf-row">
+        <article class="token"><img src="../../../public/mascot/art/autumn/idle.webp" alt="" /><b>Шарф</b></article>
+        <article class="token"><img src="../../../public/mascot/art/cheer.webp" alt="" /><b>Лист</b></article>
+        <article class="token"><img src="../../../public/mascot/art/goal.webp" alt="" /><b>Бирюза</b></article>
+        <article class="token miss"><img src="../../../public/mascot/art/streak.webp" alt="" /><b>Повязка</b></article>
       </div>
+    </section>
+    <section class="shelf">
+      <h3>Ещё в сезоне</h3>
+      <div class="shelf-row">
+        <article class="token"><img src="../../../public/mascot/art/autumn/cheer.webp" alt="" /><b>Тыква</b></article>
+        <article class="token miss"><img src="../../../public/mascot/art/idle.webp" alt="" /><b>Янтарь</b></article>
+        <article class="token miss"><img src="../../../public/mascot/art/pet.webp" alt="" /><b>Мята</b></article>
+        <article class="token finale"><img src="../../../public/mascot/art/autumn/goal.webp" alt="" /><b>Финал</b></article>
+      </div>
+    </section>
+    <div class="chest-row" style="margin:12px 16px 0">
+      <div data-chest="festive" data-pose="shut"></div>
+      <p style="margin:0;font-size:13px;font-weight:750">Финал осени — золотой сундук. Его нет в обычном розыгрыше.</p>
     </div>
-    <p class="section-label">Одежда</p>
-    <div class="cards">
-      <article class="card">
-        <i>редк.</i>
-        <img src="../../../public/mascot/art/autumn/idle.webp" alt="" />
-        <b>Осенний шарф</b>
-      </article>
-      <article class="card">
-        <i>редк.</i>
-        <img src="../../../public/mascot/art/cheer.webp" alt="" />
-        <b>Золотой лист</b>
-      </article>
-      <article class="card lock">
-        <img src="../../../public/mascot/art/streak.webp" alt="" />
-        <b>Повязка зала</b>
-      </article>
-    </div>
-    <p class="section-label">Темы дня</p>
-    <div class="cards">
-      <article class="card"><div class="swatch"></div><b>Бирюза</b></article>
-      <article class="card"><div class="swatch amber"></div><b>Янтарь</b></article>
-      <article class="card lock"><div class="swatch mint"></div><b>Мята</b></article>
-    </div>
-    <p class="section-label">Серия «Живые дни» · 2 из 4</p>
-    <div class="cards">
-      <article class="card"><img src="../../../public/mascot/art/goal.webp" alt="" /><b>Первый день</b></article>
-      <article class="card"><img src="../../../public/mascot/art/streak.webp" alt="" /><b>Комбо</b></article>
-      <article class="card lock"><img src="../../../public/mascot/art/idle.webp" alt="" /><b>Неделя</b></article>
-    </div>
+    <p class="when" style="margin-top:12px">Пропуск дня полку не обнуляет</p>
   </div>
+  <script src="chest.js"></script>
 </body>
 </html>

@@ -2,30 +2,26 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <title>Кадр 4 — награда поднимается</title>
+  <title>Кадр 4</title>
   <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
 </head>
 <body>
-  <div class="stage">
-    <p class="frame-note" style="position:absolute;top:28px">Кадр 4 из 4 · предмет</p>
-    <div class="beams"></div>
-    <div style="position:relative;width:320px;height:400px;z-index:1">
-      <img src="../../../public/mascot/art/autumn/cheer.webp" alt="" style="width:200px;height:200px;object-fit:contain;position:absolute;right:0;bottom:40px" />
-      <div style="position:absolute;left:28px;top:70px;width:168px;background:white;color:#14181f;border-radius:22px;padding:14px 14px 16px;text-align:left;box-shadow:0 16px 40px rgba(0,0,0,.28)">
-        <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(180deg,#fde68a,#d97706);display:grid;place-items:center">
-          <svg width="36" height="36" viewBox="0 0 36 36"><path d="M18 4c3 7 10 9 13 16-5 1-8 5-8 12-1-8-6-10-13-10 4-5 5-12 8-18z" fill="#fff"/><path d="M18 12c1 5 1 10 0 16" stroke="#d97706" stroke-width="1.4" fill="none"/></svg>
-        </div>
-        <p style="margin:10px 0 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c4a03">Редкая</p>
-        <p style="margin:2px 0 0;font-family:Unbounded,sans-serif;font-size:18px;font-weight:700">Золотой лист</p>
+  <div class="stage rich">
+    <p class="frame-note" style="position:absolute;top:28px">Кадр 4 · предмет</p>
+    <div class="flash" style="opacity:.7"></div>
+    <div style="position:relative;width:340px;height:360px;z-index:2">
+      <div class="loot-card" style="position:absolute;left:8px;top:36px">
+        <div class="sw"><svg width="36" height="36" viewBox="0 0 64 64"><path fill="#fff" d="M32 6C16 26 10 34 12 46c2 12 12 14 20 14s18-2 20-14c2-12-4-20-20-40z"/></svg></div>
+        <p style="margin:8px 0 0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7c4a03">Редкая</p>
+        <p style="margin:2px 0 0;font-family:Unbounded,sans-serif;font-weight:700;font-size:18px">Золотой лист</p>
       </div>
-      <div class="chest open" style="position:absolute;left:36px;bottom:0;transform:scale(.72);transform-origin:left bottom">
-        <div class="glow"></div>
-        <div class="box"></div>
-        <div class="lid"></div>
-      </div>
+      <img src="../../../public/mascot/art/autumn/cheer.webp" alt="" style="position:absolute;right:-10px;bottom:20px;width:180px;height:180px;object-fit:contain" />
+      <div data-chest="rare" data-pose="open" style="position:absolute;left:16px;bottom:0;transform:scale(.9);transform-origin:left bottom"></div>
     </div>
-    <h2 style="font-size:22px;position:relative">Лист выходит из сундука</h2>
-    <p class="lead">Дальше — экран, где его можно надеть на грушу.</p>
+    <h2 style="font-size:22px;position:relative">Лист выходит наружу</h2>
+    <p class="lead">Карточка поднялась из света. Дальше её можно надеть на грушу.</p>
   </div>
+  <script src="chest.js"></script>
 </body>
 </html>
