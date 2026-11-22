@@ -2,10 +2,12 @@
  * Пустые КБЖУ в карточке чата.
  * Схема извлечения требует числа, поэтому ответ без состава приходит как 0/0/0/0.
  * Такие нули — не измерение: ищем типовую строку справочника и пересчитываем
- * её на названную порцию. Если строки нет, поля остаются пустыми.
+ * её на названную порцию. Штуки («3 блинчика») переводятся в средний вес штуки.
+ * Если строки нет, поля остаются пустыми — нули не подставляем.
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+import { expandFoodQueries, gramsPerPiece, pieceCountBesideDish } from "@/lib/piece-portion";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
 import { splitQuickPortion } from "@/lib/quick-log";
 import { dishLooksLikeAlcohol, lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
@@ -200,12 +202,63 @@ function lookupPack(name: string): NutritionPack | null {
     .map((token) => (token.length >= 6 && /[ая]$/u.test(token) ? token.slice(0, -1) : token))
     .join(" ")
     .trim();
-  for (const query of [base, nominative]) {
-    if (query.length < 3) continue;
+  for (const query of expandFoodQueries([base, nominative])) {
     const hit = lookupRuNutritionTable(query);
     if (hit) return hit;
   }
   return null;
+}
+
+function resolvePieceCount(meal: AssistantMealDraft, userMessage: string): number | null {
+  if (meal.unit === "шт" && typeof meal.grams === "number" && meal.grams > 0 && meal.grams <= 40) {
+    return Math.round(meal.grams);
+  }
+  if (meal.unit === "мл") return null;
+  const saidWeight =
+    /\d+(?:[.,]\d+)?\s*(?:грамм(?:а|ов)?|гр|г|мл)(?=$|\s|[^\p{L}\p{N}])/iu.test(userMessage);
+  if (saidWeight && meal.unit !== "шт") return null;
+  const beside = pieceCountBesideDish(meal.name, userMessage);
+  if (beside == null) return null;
+  if (meal.grams == null || meal.grams === beside) return beside;
+  return null;
+}
+
+function pieceMealName(name: string, pieces: number): string {
+  const named = splitQuickPortion(name);
+  let base = (named.base || name).replace(/\s*\(\s*\d+\s*шт[^)]*\)\s*/giu, " ").replace(/\s+/g, " ").trim();
+  if (pieces > 1 && !new RegExp(String.raw`\(\s*${pieces}\s*шт`, "i").test(base)) {
+    base = `${base} (${pieces} шт)`;
+  }
+  return base.slice(0, 120);
+}
+
+/**
+ * «3 шт» в схеме извлечения — это число штук, не 3 грамма.
+ * Ккал, которые пользователь назвал сам, не подменяем.
+ */
+function piecePortionMeal(
+  meal: AssistantMealDraft,
+  pack: NutritionPack,
+  pieces: number,
+  grams: number,
+  keepKcal: number | null,
+): AssistantMealDraft {
+  const scaled = scalePack(pack, grams);
+  const next: AssistantMealDraft = {
+    ...meal,
+    name: pieceMealName(meal.name, pieces),
+    grams,
+    unit: "г",
+    kcal: keepKcal ?? scaled.kcal,
+  };
+  if (keepKcal == null) {
+    next.protein = scaled.protein;
+    next.fat = scaled.fat;
+    next.carbs = scaled.carbs;
+    next.per100 = referencePer100(pack);
+    next.nutritionBasis = "estimate";
+  }
+  return next;
 }
 
 function clearMacros(meal: AssistantMealDraft): AssistantMealDraft {
@@ -333,9 +386,25 @@ function enrichOne(
     return next;
   }
 
+  const pieces = resolvePieceCount(meal, userMessage);
+  const namedGrams = leadingLineGrams(corpus);
+  const packForPieces = pieces != null ? lookupPack(meal.name) : null;
+  if (pieces != null && packForPieces) {
+    const per = gramsPerPiece(packForPieces.dishName, packForPieces.portionGrams);
+    const pieceGrams = namedGrams ?? (per != null ? per * pieces : null);
+    if (pieceGrams != null && (namedGrams != null || per != null)) {
+      const keepKcal =
+        userNamedKcal(userMessage, meal.name) && typeof meal.kcal === "number" && meal.kcal > 0
+          ? Math.round(meal.kcal)
+          : null;
+      return piecePortionMeal(meal, packForPieces, pieces, pieceGrams, keepKcal);
+    }
+  }
+
   const named = splitQuickPortion(meal.name);
-  const userGrams = leadingLineGrams(corpus);
-  const attached = mealNamedGrams(meal);
+  const userGrams = namedGrams;
+  const attached =
+    meal.unit === "шт" || (pieces != null && meal.grams === pieces) ? null : mealNamedGrams(meal);
   const modelKcal =
     typeof meal.kcal === "number" && meal.kcal > 0
       ? meal.kcal

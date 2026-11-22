@@ -157,6 +157,7 @@ export function alignAssistantMealUnits(meals: QuickMeal[], userMessage: string)
   return meals.map((meal) => {
     const named = splitQuickPortion(sanitizeAssistantMealName(meal.name));
     const base = (named.base || meal.name).trim();
+    const lookupBase = base.replace(/\s*\(\s*\d+\s*шт[^)]*\)\s*/giu, " ").replace(/\s+/g, " ").trim();
     const drink = looksLikeDrinkName(base, meal.name);
     let unit: "г" | "мл" | "шт" =
       meal.unit === "шт" ? "шт" : drink && (meal.unit === "мл" || named.unit === "мл") ? "мл" : "г";
@@ -168,8 +169,9 @@ export function alignAssistantMealUnits(meals: QuickMeal[], userMessage: string)
           ? named.grams
           : undefined;
     let next = meal;
-    if (grams === 100 && !userSaid100 && unit !== "шт") {
-      const pack = lookupRuNutritionTable(base);
+    // Оценка по штукам уже пересчитана в граммы. Ровно 100 г здесь не «выдуманная сотня».
+    if (grams === 100 && !userSaid100 && unit !== "шт" && meal.nutritionBasis !== "estimate") {
+      const pack = lookupRuNutritionTable(lookupBase || base);
       if (pack && pack.portionGrams > 0 && pack.portionGrams !== 100) {
         const tablePer100 = (pack.calories * 100) / pack.portionGrams;
         if (meal.kcal != null && !figuresDiverge(meal.kcal, pack.calories)) {
