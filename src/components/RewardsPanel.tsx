@@ -56,6 +56,7 @@ type FilterId = "all" | "owned" | "locked" | RewardRarity | RewardGroup;
 const GROUP_ORDER: RewardGroup[] = ["sticker", "cheer", "frame"];
 
 const CHEST_SOURCE_ORDER: ChestSource[] = [
+  "leaf",
   "quest",
   "challenge",
   "streak",

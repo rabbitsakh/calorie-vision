@@ -6,6 +6,8 @@ import { BrandMark } from "@/components/BrandMark";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { MomentHeroView } from "@/components/MomentHeroCard";
+import { LeafChestStrip } from "@/components/LeafChestStrip";
+import { LEAF_FINE_PRINT, type LeafPublic } from "@/lib/leaf-chest";
 import { NavIcon } from "@/components/NavIcons";
 import { buildMomentHero } from "@/lib/moment-hero";
 import { setMetrikaConsent } from "@/lib/metrika-consent";
@@ -27,6 +29,26 @@ import {
   WATER_TARGET_ML,
   ideasForMoment,
 } from "./fixture";
+
+const CHEST_PREVIEW: LeafPublic = {
+  line: "Вчера зал, позавчера завтрак — остался сегодняшний листок.",
+  sheetHint: "Сделаешь и то и другое — в сундуке будет редкая вещь.",
+  finePrint: LEAF_FINE_PRINT,
+  filled: 2,
+  ready: false,
+  readyCount: 0,
+  rarity: null,
+  rarityLabel: null,
+  chestLook: "rare",
+  slots: [
+    { state: "on", label: "пт" },
+    { state: "on", label: "сб" },
+    { state: "wait", label: "вс" },
+  ],
+  spareLeaf: false,
+  canSpendSpare: false,
+  pendingNote: null,
+};
 
 const ICON = {
   width: 20,
@@ -138,6 +160,37 @@ export function TodayHeroPreview() {
               mealIdeasLabel="Идеи на завтрак"
               ideasEmpty={ideasEmpty}
             />
+          ) : null}
+          {params.get("chest") ? (
+            <>
+              <LeafChestStrip
+                selectedDate={FIXTURE_DATE}
+                today={FIXTURE_DATE}
+                refreshKey={0}
+                fixture={CHEST_PREVIEW}
+                initialSheet={params.get("chest") === "sheet"}
+              />
+              <div className="ration-day-feed ration-meal-feed">
+                <article className="meal-card">
+                  <div className="meal-card-body flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--muted)]">Завтрак</p>
+                      <p className="meal-card-title">Сырники со сметаной</p>
+                    </div>
+                    <p className="meal-card-kcal">420</p>
+                  </div>
+                </article>
+                <article className="meal-card">
+                  <div className="meal-card-body flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--muted)]">Обед</p>
+                      <p className="meal-card-title">Курица с киноа</p>
+                    </div>
+                    <p className="meal-card-kcal">610</p>
+                  </div>
+                </article>
+              </div>
+            </>
           ) : null}
         </div>
       </main>
