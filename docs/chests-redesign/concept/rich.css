@@ -90,7 +90,7 @@
   grid-template-columns: 48px minmax(0, 1fr) 16px;
   align-items: center;
   column-gap: 12px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 16px;
   background: #fff;
   border: 1px solid rgba(13, 115, 119, 0.14);
@@ -99,15 +99,18 @@
   color: inherit;
 }
 .chest-strip p {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 750;
   line-height: 1.25;
   text-align: left;
 }
 .leafs { display: flex; gap: 12px; align-items: center; }
+.chest-strip .leafs { gap: 10px; }
 .lf { display: inline-flex; align-items: center; gap: 4px; color: #8aa19c; }
+.chest-strip .lf { gap: 3px; }
 .lf small { font-size: 11px; font-weight: 800; letter-spacing: 0.02em; }
+.chest-strip .lf small { font-size: 12px; line-height: 1; }
 .lf svg { display: block; }
 .lf.on { color: #0d7377; }
 .lf.wait { color: #d97706; }
