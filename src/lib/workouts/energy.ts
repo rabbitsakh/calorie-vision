@@ -15,7 +15,8 @@ import { matchExerciseName } from "@/lib/workouts/catalog-link";
 import { catalogById, type CatalogExercise, type EquipmentKey } from "@/lib/workouts/exercise-catalog";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
-import { sessionElapsedSec, type SessionClock } from "@/lib/workouts/session-clock";
+import { sessionBillableElapsedSec } from "@/lib/day-facts";
+import type { SessionClock } from "@/lib/workouts/session-clock";
 
 /** Если в профиле нет ни одного измерения веса. */
 export const FALLBACK_BODY_WEIGHT_KG = 70;
@@ -115,6 +116,8 @@ export type EnergySet = {
   durationSec?: number | null;
   distanceKm?: number | null;
   setType?: string | null;
+  /** Когда подход записан. Нужен, чтобы открытая сессия не копила простой. */
+  createdAt?: Date | string | null;
 };
 
 export type EnergyExercise = {
@@ -545,7 +548,7 @@ export function estimateDbSessionEnergy(
 ): SessionEnergy {
   return estimateSessionEnergy({
     weightKg,
-    elapsedSec: sessionElapsedSec(session, nowMs),
+    elapsedSec: sessionBillableElapsedSec(session, nowMs),
     exercises: session.exercises,
   });
 }
@@ -563,7 +566,7 @@ function formatMet(met: number): string {
 
 export function formatSessionEnergyKcal(energy: SessionEnergy): string {
   if (energy.kcal <= 0) return "";
-  return `${energy.approximate ? "~" : ""}${energy.kcal} ккал`;
+  return `${energy.approximate ? "~" : ""}${energy.kcal.toLocaleString("ru-RU")} ккал`;
 }
 
 function formatPace(kmh: number): string {

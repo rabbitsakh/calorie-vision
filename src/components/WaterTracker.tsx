@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { shownWaterMl, shownWaterTargetMl } from "@/lib/day-facts";
 import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 import { notifyWaterLogged, WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
@@ -76,8 +77,8 @@ export function WaterTracker({
     if (hidden) return;
 
     if (day?.data?.date === selectedDate && day.data.water) {
-      setTotalMl(day.data.water.totalMl);
-      setTarget(day.data.water.target || WATER_DAILY_TARGET_ML);
+      setTotalMl(shownWaterMl(day.data.water.totalMl));
+      setTarget(shownWaterTargetMl(day.data.water.target) || WATER_DAILY_TARGET_ML);
       return;
     }
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildSessionSummary, formatSummaryLoadLine } from "./session-summary.ts";
+import { buildSessionSummary, formatSummaryLoadLine, summaryLoadHint } from "./session-summary.ts";
 
 test("buildSessionSummary counts PR and sets", () => {
   const card = buildSessionSummary({
@@ -28,5 +28,6 @@ test("buildSessionSummary counts PR and sets", () => {
   assert.equal(card.prCount, 1);
   assert.equal(card.completedSets, 5);
   assert.equal(card.headline, "Готово · 1 рекорд");
-  assert.equal(formatSummaryLoadLine(card), "5000 кг × повторы");
+  assert.equal(formatSummaryLoadLine(card), "5\u00a0000 кг");
+  assert.equal(summaryLoadHint(card), "× повторы");
 });

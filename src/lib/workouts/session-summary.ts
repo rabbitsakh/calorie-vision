@@ -1,5 +1,6 @@
 import { formatSessionClock } from "@/lib/workouts/session-clock";
 import { formatDistanceKm, formatDurationMinutes } from "@/lib/workouts/cardio";
+import { formatWorkoutLoad } from "@/lib/workouts/format";
 
 export type SummaryExercise = {
   name: string;
@@ -91,5 +92,11 @@ export function formatSummaryLoadLine(card: SessionSummaryCard): string {
     ].filter(Boolean);
     return parts.join(" · ") || "—";
   }
-  return `${Math.round(card.totalLoad)} кг × повторы`;
+  return `${formatWorkoutLoad(card.totalLoad)} кг`;
+}
+
+/** Мелкая подпись под тоннажем: число уже с «кг». */
+export function summaryLoadHint(card: SessionSummaryCard): string | null {
+  if (card.cardioOnly || !(card.totalLoad > 0)) return null;
+  return "× повторы";
 }

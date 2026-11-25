@@ -17,11 +17,8 @@ import {
 import { muscleGroupLabel, normalizeGroupKeys } from "@/lib/workouts/muscle-groups";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
 import { sessionQualifiesForGymReward } from "@/lib/gym-rewards";
-import {
-  formatSessionClock,
-  sessionClockStatus,
-  sessionElapsedSec,
-} from "@/lib/workouts/session-clock";
+import { sessionBillableElapsedSec } from "@/lib/day-facts";
+import { formatSessionClock, sessionClockStatus } from "@/lib/workouts/session-clock";
 
 export type DbSet = {
   id: string;
@@ -33,6 +30,7 @@ export type DbSet = {
   completed?: boolean | null;
   rpe?: number | null;
   sortOrder: number;
+  createdAt?: Date | string | null;
 };
 
 export type DbExercise = {
@@ -103,7 +101,7 @@ export function serializeSessionSummary(session: DbSession) {
     pausedAt: session.pausedAt ?? null,
     pausedMs: session.pausedMs ?? 0,
   };
-  const elapsedSec = sessionElapsedSec(clock);
+  const elapsedSec = sessionBillableElapsedSec(session);
   const clockStatus = sessionClockStatus(clock);
 
   return {
@@ -174,6 +172,7 @@ export function serializeSessionDetail(session: DbSession) {
             paceSecPerKm: paceSecPerKm(distanceKm ?? 0, durationSec ?? 0),
             sortOrder: s.sortOrder,
             load,
+            createdAt: s.createdAt ? new Date(s.createdAt).toISOString() : null,
           };
         });
       const cardio =

@@ -20,6 +20,7 @@ import {
 } from "@/lib/assistant-meal-time";
 import { buildMealPatchFields } from "@/lib/assistant-meal-patch";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
+import { sumWaterMl } from "@/lib/day-facts";
 import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
@@ -429,7 +430,7 @@ export async function toolLogWater(opts: {
   const all = await prisma.waterEntry.findMany({
     where: { userId: opts.userId, date: opts.date },
   });
-  const totalMl = all.reduce((sum, e) => sum + e.ml, 0);
+  const totalMl = sumWaterMl(all);
   return {
     ok: true,
     tool: "log_water",

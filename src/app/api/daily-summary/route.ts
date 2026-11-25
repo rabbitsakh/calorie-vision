@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
+import { sumWaterMl } from "@/lib/day-facts";
 import { loadDayNorm } from "@/lib/day-norm-load";
 import {
   DIET_PROFILE_SELECT,
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const totalCarbs = round1(entries.reduce((sum, e) => sum + (e.carbs ?? 0), 0));
     const totalFiber = round1(entries.reduce((sum, e) => sum + (e.fiber ?? 0), 0));
     const totalSugar = round1(entries.reduce((sum, e) => sum + (e.sugar ?? 0), 0));
-    const totalWaterMl = waterEntries.reduce((sum, e) => sum + e.ml, 0);
+    const totalWaterMl = sumWaterMl(waterEntries);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
     const norm = await loadDayNorm(session.user.id, summaryDate);

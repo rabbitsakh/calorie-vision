@@ -44,6 +44,15 @@ test("readRationDayCache returns null for unknown date", () => {
   assert.equal(readRationDayCache("2026-01-01"), null);
 });
 
+test("legacy v1 cache is ignored", () => {
+  const map = mockStorage();
+  map.set(
+    "cv-ration-day-cache-v1",
+    JSON.stringify({ "2026-11-25": { date: "2026-11-25" } }),
+  );
+  assert.equal(readRationDayCache("2026-11-25"), null);
+});
+
 test("writeRationDayCache keeps last 8 days", () => {
   mockStorage();
   for (let i = 1; i <= 10; i++) {

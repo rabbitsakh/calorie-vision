@@ -11,10 +11,8 @@ import { WorkoutRestTimerBanner } from "@/components/workouts/WorkoutRestTimer";
 import { SessionSheet } from "@/components/workouts/SessionSheet";
 import { SetTable, type SetTableFields } from "@/components/workouts/SetTable";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
-import {
-  dateKeyAndTimeToIso,
-  toTimeInputValue,
-} from "@/lib/dates";
+import { toTimeInputValue } from "@/lib/dates";
+import { sessionBillableElapsedSec, wallClockSessionInstants } from "@/lib/day-facts";
 import {
   buildSetTableRows,
   exerciseSetCounts,
@@ -35,7 +33,6 @@ import {
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
 import { buildLiveHeaderView, formatExerciseTonnage, type LiveCompare } from "@/lib/workouts/live-header";
-import { sessionElapsedSec } from "@/lib/workouts/session-clock";
 import {
   estimateSessionEnergy,
   formatSessionEnergyCaption,
@@ -154,6 +151,7 @@ type SessionExercise = {
     paceSecPerKm: number | null;
     load: number;
     pendingLocal?: boolean;
+    createdAt?: string | null;
   }>;
   lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
@@ -453,12 +451,7 @@ export function WorkoutActiveSession({
     void liveElapsedLabel;
     return estimateSessionEnergy({
       weightKg: bodyWeightKg,
-      elapsedSec: sessionElapsedSec({
-        startedAt: detail.startedAt ?? null,
-        endedAt: detail.endedAt ?? null,
-        pausedAt: detail.pausedAt ?? null,
-        pausedMs: detail.pausedMs ?? 0,
-      }),
+      elapsedSec: sessionBillableElapsedSec(detail),
       exercises: detail.exercises.map((exercise) => ({
         name: exercise.name,
         kind: exercise.kind,
@@ -472,12 +465,7 @@ export function WorkoutActiveSession({
       })),
     });
   }, [bodyWeightKg, detail, liveElapsedLabel]);
-  const liveElapsedSec = sessionElapsedSec({
-    startedAt: detail.startedAt ?? null,
-    endedAt: detail.endedAt ?? null,
-    pausedAt: detail.pausedAt ?? null,
-    pausedMs: detail.pausedMs ?? 0,
-  });
+  const liveElapsedSec = sessionBillableElapsedSec(detail);
   const headerView = useMemo(
     () =>
       buildLiveHeaderView({
@@ -794,12 +782,7 @@ export function WorkoutActiveSession({
       {showSummary ? (
         <WorkoutSessionSummary
           date={detail.date}
-          elapsedSec={sessionElapsedSec({
-            startedAt: detail.startedAt ?? null,
-            endedAt: detail.endedAt ?? null,
-            pausedAt: detail.pausedAt ?? null,
-            pausedMs: detail.pausedMs ?? 0,
-          })}
+          elapsedSec={sessionBillableElapsedSec(detail)}
           totalLoad={detail.totalLoad}
           cardioDistanceKm={detail.cardioDistanceKm}
           cardioDurationSec={detail.cardioDurationSec}
@@ -1243,14 +1226,10 @@ export function WorkoutActiveSession({
               disabled={busy || timeBusy}
               className="min-h-[44px] rounded-lg bg-[var(--accent)] px-3 text-sm font-semibold text-white disabled:opacity-40"
               onClick={() => {
-                const startIso = dateKeyAndTimeToIso(detail.date, editStartTime);
-                let endIso = dateKeyAndTimeToIso(detail.date, editEndTime);
-                if (!startIso || !endIso) return;
-                if (new Date(endIso).getTime() < new Date(startIso).getTime()) {
-                  endIso = new Date(new Date(endIso).getTime() + 24 * 60 * 60 * 1000).toISOString();
-                }
+                const times = wallClockSessionInstants(detail.date, editStartTime, editEndTime);
+                if (!times) return;
                 setTimeBusy(true);
-                void patchSessionTimes({ startedAt: startIso, endedAt: endIso }).finally(() =>
+                void patchSessionTimes(times).finally(() =>
                   setTimeBusy(false),
                 );
               }}
