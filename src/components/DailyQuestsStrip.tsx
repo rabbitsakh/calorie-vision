@@ -1,21 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
-import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { computeDailyQuests } from "@/lib/daily-quests";
-import { isComboDay } from "@/lib/gym-rewards";
-import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
-import { shouldDeferQuestChestForPostWorkout } from "@/lib/post-workout-nudge";
-import {
-  isSoftCelebrationSeen,
-  markSoftCelebrationSeen,
-} from "@/lib/soft-celebration";
 import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
-import { trackComboDayGoal, trackQuestDoneGoal } from "@/lib/metrika-funnel";
+import { trackQuestDoneGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
-import { publishReviewMoment, rememberSuccessDays } from "@/lib/rustore-review-prompt";
 import { withDateQuery } from "@/lib/use-selected-date";
 import Link from "next/link";
 
@@ -26,13 +16,11 @@ type DailyQuestsStripProps = {
 };
 
 /**
- * Soft daily micro-quests on ration. Chest every N completed quest-days (wave 4).
+ * Checklist under «Ещё». The day chest lives on the leaf strip, so this list
+ * no longer marks a second quest-day chest.
  */
 export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuestsStripProps) {
   const day = useOptionalRationDay();
-  const [hint, setHint] = useState<string | null>(null);
-  const claimedRef = useRef<string | null>(null);
-
   const [gymSessionCount, setGymSessionCount] = useState(0);
 
   useEffect(() => {
@@ -76,95 +64,17 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     });
   }, [day, selectedDate, gymSessionCount]);
 
-  const tryClaim = useCallback(async () => {
-    if (selectedDate !== today) return;
-    if (!progress?.allDone) return;
-    if (claimedRef.current === today) return;
-    if (isSoftCelebrationSeen("quest-chest", today)) return;
-    // Let MomentHeroCard own «после зала — белок» before stacking a chest.
-    if (
-      shouldDeferQuestChestForPostWorkout({
-        protein: day?.data?.meals?.totalProtein ?? 0,
-        proteinTarget: day?.data?.meals?.target?.protein ?? 0,
-      })
-    ) {
-      return;
-    }
-
-    claimedRef.current = today;
-    // Chests 2.0: mark calm day only — open happens on ChestDock «Открыть».
-    const result = await openChest({ source: "quest", action: "mark", date: today });
-    if (!result) {
-      claimedRef.current = null;
-      return;
-    }
-
-    if (result.queuedOffline) {
-      // Keep claimedRef so we don't re-POST every render; draft flushes with the queue.
-      setHint("День в очереди — отметим сундук при связи");
-      return;
-    }
-
-    markSoftCelebrationSeen("quest-chest", today);
-    flushPendingMetaChests();
-    notifyChestQueueRefresh();
-
-    const successDays = result.questDayCount ?? 0;
-    rememberSuccessDays(successDays);
-    publishReviewMoment({ moment: "day-closed", successDays });
-
-    if ((result.readyCount ?? 0) > 0) {
-      setHint("Сундук готов · открой выше на дне");
-      return;
-    }
-
-    const nextIn = result.nextChestIn ?? QUEST_DAYS_PER_CHEST;
-    if (nextIn <= 0) {
-      setHint(null);
-      return;
-    }
-    setHint(`Ещё ${nextIn} лёгких дня до сундука`);
-  }, [
-    progress?.allDone,
-    selectedDate,
-    today,
-    day?.data?.meals?.totalProtein,
-    day?.data?.meals?.target?.protein,
-  ]);
-
-  useEffect(() => {
-    void tryClaim();
-  }, [tryClaim, refreshKey]);
-
   useEffect(() => {
     if (selectedDate !== today || !progress) return;
     for (const quest of progress.quests) {
       if (quest.done) trackQuestDoneGoal(today, quest.id);
     }
-    const comboNow = isComboDay({
-      qualifyingWorkout: gymSessionCount > 0,
-      protein: day?.data?.meals?.totalProtein ?? 0,
-      proteinTarget: day?.data?.meals?.target?.protein ?? 0,
-    });
-    if (comboNow) trackComboDayGoal(today);
-  }, [
-    selectedDate,
-    today,
-    progress,
-    gymSessionCount,
-    day?.data?.meals?.totalProtein,
-    day?.data?.meals?.target?.protein,
-  ]);
+  }, [selectedDate, today, progress]);
 
   if (!progress || selectedDate !== today) return null;
 
   const requiredQuests = progress.quests.filter((q) => !q.bonus);
   const doneCount = requiredQuests.filter((q) => q.done).length;
-  const combo = isComboDay({
-    qualifyingWorkout: gymSessionCount > 0,
-    protein: day?.data?.meals?.totalProtein ?? 0,
-    proteinTarget: day?.data?.meals?.target?.protein ?? 0,
-  });
 
   return (
     <>
@@ -188,9 +98,6 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
               <span className="truncate">
                 {q.done ? "✓ " : "○ "}
                 {q.title}
-                {q.bonus && !q.done ? (
-                  <span className="ml-1 text-[10px] font-medium text-[var(--muted)]">в сундук</span>
-                ) : null}
               </span>
               {q.done ? (
                 <span className="shrink-0 text-[10px] font-medium text-[var(--accent)]">{q.doneHint}</span>
@@ -210,13 +117,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
             Бонус первой недели: короткая тренировка — и день ощущается полнее.
           </p>
         ) : null}
-        {combo ? (
-          <p className="mt-1.5 text-xs font-semibold text-[var(--accent-ink)]" role="status">
-            Комбо-день: тренировка и белок в цели. В сундук этот день идёт один раз.
-          </p>
-        ) : null}
-        {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}
-        {progress.allDone && !hint ? (
+        {progress.allDone ? (
           <p className="mt-1.5 text-xs text-[var(--accent-ink)]">День закрыт мягко — так и надо.</p>
         ) : null}
       </div>

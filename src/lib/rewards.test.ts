@@ -98,7 +98,7 @@ describe("rewards", () => {
     assert.ok(phrase && phrase.length > 0);
   });
 
-  test("CHEST_SOURCE_LABELS covers all six sources", () => {
+  test("CHEST_SOURCE_LABELS covers every source", () => {
     const sources: ChestSource[] = [
       "challenge",
       "streak",
@@ -106,11 +106,12 @@ describe("rewards", () => {
       "quest",
       "meta",
       "referral",
+      "leaf",
     ];
     for (const source of sources) {
       assert.ok(CHEST_SOURCE_LABELS[source].length > 0);
     }
-    assert.equal(Object.keys(CHEST_SOURCE_LABELS).length, 6);
+    assert.equal(Object.keys(CHEST_SOURCE_LABELS).length, sources.length);
   });
 });
 

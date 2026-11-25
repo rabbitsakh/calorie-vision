@@ -4,7 +4,7 @@
 
 export type RewardRarity = "common" | "rare" | "festive";
 export type RewardGroup = "sticker" | "cheer" | "frame";
-export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta" | "referral";
+export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta" | "referral" | "leaf";
 
 /** Human labels for when each chest source opens (R14). */
 export const CHEST_SOURCE_LABELS: Record<ChestSource, string> = {
@@ -14,6 +14,7 @@ export const CHEST_SOURCE_LABELS: Record<ChestSource, string> = {
   quest: "Ежедневные квесты",
   meta: "Мета коллекции",
   referral: "Приглашение друга",
+  leaf: "Три листка",
 };
 
 export type RewardDef = {

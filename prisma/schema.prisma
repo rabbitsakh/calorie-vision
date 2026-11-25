@@ -101,6 +101,9 @@ model User {
   challenges    UserChallenge[]
   userBadges    UserBadge[]
   userRewards   UserReward[]
+  leafSparks    LeafSpark[]
+  leafChests    LeafChest[]
+  leafChestLedger LeafChestLedger?
   workoutSessions          WorkoutSession[]
   workoutExerciseLibrary   WorkoutExerciseLibrary[]
   workoutRoutines          WorkoutRoutine[]
@@ -436,6 +439,53 @@ model UserReward {
   @@unique([userId, sourceKey])
   @@index([userId])
   @@index([userId, rewardKey])
+}
+
+/** One leaf per local date. Skipping a day does not delete rows. */
+model LeafSpark {
+  id        String   @id @default(cuid())
+  userId    String
+  dateKey   String   @db.VarChar(10)
+  food      Boolean  @default(false)
+  workout   Boolean  @default(false)
+  /** Spare leaf on yesterday. Not a workout and not a second leaf. */
+  spare     Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+  @@index([userId])
+}
+
+/** Chest sealed when three leaves accrue. Rarity is fixed before the open animation. */
+model LeafChest {
+  id        String    @id @default(cuid())
+  userId    String
+  seq       Int
+  /** common | rare | gold */
+  rarity    String    @db.VarChar(16)
+  combo     Boolean   @default(false)
+  rewardKey String?   @db.VarChar(64)
+  openedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seq])
+  @@index([userId])
+}
+
+/** Pity counters and the single spare leaf. New users start at zero. */
+model LeafChestLedger {
+  userId       String   @id
+  commonStreak Int      @default(0)
+  sinceGold    Int      @default(0)
+  spareLeaf    Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FoodCorrection {

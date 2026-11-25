@@ -27,7 +27,7 @@ import { EveningDaySummaryCard } from "@/components/EveningDaySummaryCard";
 import { QuickLogStrip } from "@/components/QuickLogStrip";
 import { useDayFeedEvents } from "@/components/useDayFeedEvents";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
-import { ChestDock } from "@/components/ChestDock";
+import { LeafChestStrip } from "@/components/LeafChestStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
@@ -311,6 +311,7 @@ function RationBody({
           ) : (
             <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
           )}
+          <LeafChestStrip selectedDate={date} today={today} refreshKey={refreshKey} />
           {date === today ? (
             <EveningDaySummaryCard
               today={today}
@@ -388,13 +389,6 @@ function RationBody({
             />
           </div>
 
-          {/* Сундук и «Повторить вчера» ниже ленты, чтобы не закрывать приёмы. */}
-          <ChestDock
-            selectedDate={date}
-            today={today}
-            refreshKey={refreshKey}
-            onOpened={bump}
-          />
           <QuickLogStrip
             selectedDate={date}
             refreshKey={refreshKey}
