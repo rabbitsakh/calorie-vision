@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import { sendPushNotification } from "@/lib/push";
 import { describePushDeliveryFailure } from "@/lib/push-delivery-error";
-import { loadDayNorm } from "@/lib/day-norm-load";
+import { loadDayNorm, loadDisplayedWaterTargetMl } from "@/lib/day-norm-load";
 import {
   buildReminderPayload,
   computeLastWeekStats,
@@ -17,7 +17,6 @@ import {
   type ReminderKind,
   type UserReminderContext,
 } from "@/lib/push-reminders";
-import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { isInGymQuietWindow } from "@/lib/push-gym-reminder";
 export const dynamic = "force-dynamic";
@@ -27,7 +26,7 @@ async function loadUserReminderContext(
   today: string,
   timezone: string,
 ): Promise<UserReminderContext> {
-  const [meals, waterTotal, diary, user, recentMeals, freezes, workoutSessions] =
+  const [meals, waterTotal, diary, recentMeals, freezes, workoutSessions] =
     await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId, date: today },
@@ -40,10 +39,6 @@ async function loadUserReminderContext(
       prisma.diaryNote.findUnique({
         where: { userId_date: { userId, date: today } },
         select: { mood: true },
-      }),
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { ...DIET_PROFILE_SELECT, waterTargetMl: true },
       }),
       prisma.mealEntry.findMany({
         where: { userId },
@@ -77,6 +72,9 @@ async function loadUserReminderContext(
   const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const dayNorm = await loadDayNorm(userId, today);
   const calorieTarget = dayNorm?.target.calories ?? null;
+  const waterTargetMl = dayNorm
+    ? dayNorm.target.waterMl
+    : await loadDisplayedWaterTargetMl(userId, today);
 
   const lastMealDate = mealDates[0] ?? null;
   let daysSinceLastMeal: number | null = null;
@@ -103,7 +101,7 @@ async function loadUserReminderContext(
     totalCalories,
     calorieTarget,
     waterMl: waterTotal._sum.ml ?? 0,
-    waterTargetMl: user?.waterTargetMl ?? null,
+    waterTargetMl,
     streak: streakStats.streak,
     streakBeforeToday: streakStats.streakBeforeToday,
     loggedToday: streakStats.loggedToday,

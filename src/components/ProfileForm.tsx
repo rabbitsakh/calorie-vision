@@ -147,6 +147,7 @@ export function ProfileForm() {
   const [fiberTargetG, setFiberTargetG] = useState("");
   const [sugarTargetG, setSugarTargetG] = useState("");
   const [waterTargetMl, setWaterTargetMl] = useState("");
+  const [planWaterMl, setPlanWaterMl] = useState<number | null>(null);
   const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(false);
   const [allergens, setAllergens] = useState<string[]>([]);
   const [emailLocked, setEmailLocked] = useState(false);
@@ -232,6 +233,7 @@ export function ProfileForm() {
         if (cancelled) return;
         if (!isWeightGoal(data.goal) || data.currentWeightKg == null) {
           setPlanNormText(null);
+          setPlanWaterMl(null);
           setGoalLine(null);
           return;
         }
@@ -247,6 +249,7 @@ export function ProfileForm() {
           sugarTargetG: sugarTargetG.trim() ? Number(sugarTargetG) : null,
           waterTargetMl: waterTargetMl.trim() ? Number(waterTargetMl) : null,
         });
+        setPlanWaterMl(norm?.target.waterMl ?? null);
         setPlanNormText(
           norm
             ? `${norm.target.calories} ккал · белок ${norm.target.protein} г · вода ${formatWaterLiters(norm.target.waterMl)} л`
@@ -255,6 +258,7 @@ export function ProfileForm() {
       } catch {
         if (!cancelled) {
           setPlanNormText(null);
+          setPlanWaterMl(null);
           setGoalLine(null);
         }
       }
@@ -655,12 +659,18 @@ export function ProfileForm() {
                   min="500"
                   max="6000"
                   step="50"
-                  placeholder={String(WATER_DAILY_TARGET_ML)}
+                  placeholder={String(planWaterMl ?? WATER_DAILY_TARGET_ML)}
                   value={waterTargetMl}
                   onChange={(event) => setWaterTargetMl(event.target.value)}
                 />
                 <p className="text-xs text-[var(--muted)]">
-                  На экранах: {formatWaterLiters(Number(waterTargetMl) || WATER_DAILY_TARGET_ML)} л
+                  На экранах:{" "}
+                  {formatWaterLiters(
+                    waterTargetMl.trim() && Number(waterTargetMl) > 0
+                      ? Number(waterTargetMl)
+                      : (planWaterMl ?? WATER_DAILY_TARGET_ML),
+                  )}{" "}
+                  л
                 </p>
               </div>
               <div className="field">

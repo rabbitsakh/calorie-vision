@@ -2,16 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { resolveWaterTargetMl } from "@/lib/water-target";
+import { loadDisplayedWaterTargetMl } from "@/lib/day-norm-load";
 
 export const dynamic = "force-dynamic";
 
-async function waterTargetForUser(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { waterTargetMl: true },
-  });
-  return resolveWaterTargetMl(user?.waterTargetMl);
+async function waterTargetForUser(userId: string, date: string): Promise<number> {
+  return loadDisplayedWaterTargetMl(userId, date);
 }
 
 export async function GET(request: NextRequest) {
@@ -29,7 +25,7 @@ export async function GET(request: NextRequest) {
         where: { userId: session.user.id, date },
         orderBy: { createdAt: "asc" },
       }),
-      waterTargetForUser(session.user.id),
+      waterTargetForUser(session.user.id, date),
     ]);
 
     const totalMl = entries.reduce((sum, e) => sum + e.ml, 0);
@@ -62,7 +58,7 @@ export async function POST(request: NextRequest) {
       prisma.waterEntry.findMany({
         where: { userId: session.user.id, date },
       }),
-      waterTargetForUser(session.user.id),
+      waterTargetForUser(session.user.id, date),
     ]);
     const totalMl = all.reduce((sum, e) => sum + e.ml, 0);
 

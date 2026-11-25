@@ -11,6 +11,7 @@ import {
   RATION_DAY_CACHE_UPDATED_EVENT,
 } from "./ration-day-cache-optimistic.ts";
 import { readRationDayCache, writeRationDayCache } from "./ration-day-cache.ts";
+import { displayedWaterTargetMl, resolveWaterTargetMl } from "./water-target.ts";
 import type { RationDayPayload } from "../components/RationDayProvider.tsx";
 import type { MealEntry } from "../types/index.ts";
 
@@ -161,6 +162,35 @@ test("setOptimisticWaterTotal writes absolute total from API", () => {
   assert.equal(next?.water.totalMl, 2000);
   assert.equal(next?.water.target, 2000);
   assert.equal(readRationDayCache("2026-08-24")?.water.totalMl, 2000);
+});
+
+test("стакан не затирает расчётную норму 3700 запасными 2000", () => {
+  mockStorage();
+  const date = "2026-08-24";
+  const profileTarget = displayedWaterTargetMl({
+    weightKg: 103.6,
+    sex: "MALE",
+    heightCm: 186,
+  });
+  const payload = seed(date, [], 0);
+  payload.water.target = profileTarget;
+  writeRationDayCache(payload);
+
+  const loggedTarget = displayedWaterTargetMl({
+    normWaterMl: profileTarget,
+    manualWaterTargetMl: null,
+    weightKg: 103.6,
+    sex: "MALE",
+    heightCm: 186,
+  });
+  const next = setOptimisticWaterTotal(date, 250, { target: loggedTarget });
+
+  assert.equal(profileTarget, 3700);
+  assert.equal(resolveWaterTargetMl(null), 2000);
+  assert.notEqual(loggedTarget, resolveWaterTargetMl(null));
+  assert.equal(next?.water.totalMl, 250);
+  assert.equal(next?.water.target, 3700);
+  assert.equal(readRationDayCache(date)?.water.target, 3700);
 });
 
 test("applyOptimisticWeight sets weightKg", () => {
