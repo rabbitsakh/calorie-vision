@@ -7,6 +7,8 @@ export type StageMetric = {
   key: string;
   label: string;
   value: ReactNode;
+  /** Короткая подпись под числом, мельче самого значения. */
+  hint?: ReactNode;
   accent?: boolean;
 };
 
@@ -55,7 +57,7 @@ export function StageScreen({
 
   const stage = (
     <div
-          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-[var(--stage-from)] to-[var(--stage-to)] text-[var(--on-accent)]"
+          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-[var(--stage-from)] to-[var(--stage-to)] text-white"
       role="dialog"
       aria-modal="true"
       aria-label={eyebrow}
@@ -65,7 +67,7 @@ export function StageScreen({
           <div className="mb-2 flex justify-end">
             <button
               type="button"
-              className="rounded-full px-3 py-1.5 text-sm font-semibold text-[var(--muted)] hover:bg-white/10 hover:text-white"
+              className="rounded-full px-3 py-1.5 text-sm font-semibold text-white/90 hover:bg-white/10"
               onClick={onDismiss}
               aria-label={dismissLabel}
             >
@@ -74,9 +76,9 @@ export function StageScreen({
           </div>
         ) : null}
 
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/75">{eyebrow}</p>
-        <h2 className="mt-2 text-3xl font-semibold leading-tight">{headline}</h2>
-        {subline ? <p className="mt-1 text-[var(--muted)]">{subline}</p> : null}
+        <p className="text-xs font-semibold uppercase tracking-widest text-white">{eyebrow}</p>
+        <h2 className="mt-2 text-3xl font-semibold leading-tight text-white">{headline}</h2>
+        {subline ? <p className="mt-1 text-base font-medium text-white">{subline}</p> : null}
 
         {lead ? <div className="mt-4">{lead}</div> : null}
 
@@ -86,15 +88,16 @@ export function StageScreen({
               <div
                 key={m.key}
                 className={`min-w-0 overflow-hidden rounded-2xl px-4 py-3 ${
-                  m.accent ? "bg-[var(--accent)]/25" : "bg-white/10"
+                  m.accent ? "bg-[#1aa6a6]/40" : "bg-white/10"
                 }`}
               >
-                <p className={`text-xs ${m.accent ? "text-[var(--accent-soft)]" : "text-white/65"}`}>
-                  {m.label}
-                </p>
-                <div className="mt-1 break-words text-xl font-semibold tabular-nums leading-snug">
+                <p className="text-xs font-semibold text-white">{m.label}</p>
+                <div className="mt-1 break-words text-xl font-semibold tabular-nums leading-snug text-white">
                   {m.value}
                 </div>
+                {m.hint ? (
+                  <p className="mt-0.5 text-[11px] font-medium leading-tight text-white/80">{m.hint}</p>
+                ) : null}
               </div>
             ))}
           </div>
@@ -116,7 +119,7 @@ export function StageScreen({
             {secondaryAction ? (
               <button
                 type="button"
-                className="rounded-2xl border border-white/20 py-3 text-sm font-semibold"
+                className="rounded-2xl border border-white/35 py-3 text-sm font-semibold text-white"
                 onClick={secondaryAction.onClick}
               >
                 {secondaryAction.label}

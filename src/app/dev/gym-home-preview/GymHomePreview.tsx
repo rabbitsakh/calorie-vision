@@ -33,38 +33,57 @@ export function GymHomePreview() {
     : "Вт 10 ноя · грудь и трицепс";
 
   if (summary) {
+    const igor = params.get("case") === "igor";
     return (
       <WorkoutSessionSummary
-        date="12 ноября"
-        elapsedSec={48 * 60 + 12}
-        totalLoad={4820}
+        date={igor ? "2026-11-25" : "12 ноября"}
+        elapsedSec={igor ? 1 * 3600 + 50 * 60 : 48 * 60 + 12}
+        totalLoad={igor ? 14795 : 4820}
         cardioDistanceKm={0}
         cardioDurationSec={0}
         cardioOnly={false}
-        deltaPctVsPrevious={6}
+        deltaPctVsPrevious={igor ? null : 6}
         deltaPctVsTarget={null}
         previousLoad={4500}
         targetLoad={4700}
-        exercises={[
-          {
-            name: "Жим лёжа",
-            load: 1920,
-            completedCount: 4,
-            setCount: 4,
-            prLine: "82.5 кг × 6",
-            progressionKind: "up",
-          },
-          {
-            name: "Разводка гантелей",
-            load: 480,
-            completedCount: 3,
-            setCount: 3,
-            prLine: null,
-            progressionKind: "hold",
-          },
-        ]}
-        recordLines={["Жим лёжа · 82.5 кг × 6"]}
-        energyLabel="410 ккал"
+        exercises={
+          igor
+            ? [
+                {
+                  name: "Жим штанги лёжа",
+                  load: 14795,
+                  completedCount: 8,
+                  setCount: 8,
+                  prLine: "рекорд 100 кг × 1 · расчётный максимум 116.7 кг на 1 повтор",
+                  progressionKind: "up",
+                },
+              ]
+            : [
+                {
+                  name: "Жим лёжа",
+                  load: 1920,
+                  completedCount: 4,
+                  setCount: 4,
+                  prLine: "82.5 кг × 6",
+                  progressionKind: "up",
+                },
+                {
+                  name: "Разводка гантелей",
+                  load: 480,
+                  completedCount: 3,
+                  setCount: 3,
+                  prLine: null,
+                  progressionKind: "hold",
+                },
+              ]
+        }
+        recordLines={
+          igor
+            ? ["Жим штанги лёжа · рекорд 100 кг × 1 · расчётный максимум 116.7 кг на 1 повтор"]
+            : ["Жим лёжа · 82.5 кг × 6"]
+        }
+        energyLabel={igor ? "790 ккал" : "410 ккал"}
+        energyNote={igor ? "оценка сверх покоя · 128 кг · MET 4,4" : null}
         onClose={() => {}}
         onBackToList={() => {}}
         onGoToRation={() => {}}

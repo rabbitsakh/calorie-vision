@@ -6,8 +6,10 @@ import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import {
   buildSessionSummary,
   formatSummaryLoadLine,
+  summaryLoadHint,
   type SummaryExercise,
 } from "@/lib/workouts/session-summary";
+import { formatWorkoutLoad } from "@/lib/workouts/format";
 import {
   ruleNextSessionTip,
   type NextSessionTarget,
@@ -334,6 +336,7 @@ export function WorkoutSessionSummary({
       key: "load",
       label: "Тоннаж",
       value: formatSummaryLoadLine(card),
+      hint: summaryLoadHint(card),
     },
     {
       key: "sets",
@@ -384,18 +387,18 @@ export function WorkoutSessionSummary({
       onDismiss={onBackToList}
       dismissLabel="К списку"
     >
-      {energyNote ? <p className="gym-energy-line mb-3">{energyNote}</p> : null}
+      {energyNote ? <p className="mb-3 text-sm font-medium leading-snug text-white">{energyNote}</p> : null}
       {recordLines.length > 0 ? (
         <section
-          className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2.5"
+          className="mb-3 rounded-xl border border-white/30 bg-white/10 px-3 py-2.5"
           aria-label="Рекорды тренировки"
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--on-ink)]/80">
+          <p className="text-xs font-semibold uppercase tracking-widest text-white">
             Рекорды
           </p>
           <ul className="mt-1.5 space-y-1">
             {recordLines.map((line, index) => (
-              <li key={`${index}-${line}`} className="text-sm font-semibold text-[var(--accent-soft)]">
+              <li key={`${index}-${line}`} className="text-sm font-semibold leading-snug text-white">
                 {line}
               </li>
             ))}
@@ -404,7 +407,7 @@ export function WorkoutSessionSummary({
       ) : null}
       {recoveryLine ? (
         <p
-          className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2 text-sm font-semibold text-[var(--accent-soft)]"
+          className="mb-3 rounded-xl border border-white/30 bg-white/10 px-3 py-2 text-sm font-semibold text-white"
           role="status"
         >
           {recoveryLine}
@@ -420,14 +423,14 @@ export function WorkoutSessionSummary({
             <div className="min-w-0">
               <p className="truncate font-medium">{ex.name}</p>
               {ex.prLine ? (
-                <p className="text-xs font-semibold text-[var(--accent-soft)]">{ex.prLine}</p>
+                <p className="text-xs font-semibold leading-snug text-white/90">{ex.prLine}</p>
               ) : ex.progressionKind === "stall" ? (
                 <p className="text-xs text-amber-200">Плато — подумайте о deload</p>
               ) : null}
             </div>
-            <p className="shrink-0 text-sm tabular-nums text-white/55">
+            <p className="shrink-0 text-sm tabular-nums text-white/85">
               {ex.completedCount}/{ex.setCount}
-              {ex.load > 0 ? ` · ${Math.round(ex.load)}` : ""}
+              {ex.load > 0 ? ` · ${formatWorkoutLoad(ex.load)}` : ""}
             </p>
           </li>
         ))}
@@ -451,7 +454,7 @@ export function WorkoutSessionSummary({
             ? `После тренировки ${date}. ${tip} Подскажи план на следующий раз.`
             : `После тренировки ${date}. Помоги с планом на следующий раз.`,
         })}
-        className="mb-2 mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--accent-soft)]"
+        className="mb-2 mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-white"
       >
         Разобрать с AI
       </Link>
