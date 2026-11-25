@@ -25,41 +25,64 @@ type OpenedReward = {
   look: LeafRarity;
 };
 
-function LeafMark({ state }: { state: "on" | "wait" | "empty" }) {
-  const filled = state === "on";
+function LeafMark({ filled }: { filled: boolean }) {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+    <svg className="leaf-mark" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M13.2 2.2 18.2 7.6 19.4 13.8 14.6 18.2 11.4 17.2 7.2 12.8 8.4 6.2Z"
-        fill={filled ? "#0d7377" : "none"}
-        stroke={filled ? "none" : "#0d7377"}
-        strokeWidth={filled ? undefined : 1.6}
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={filled ? 0.6 : 1.6}
         strokeLinejoin="round"
       />
       <path
         d="M12.2 17.4 9.2 22.6"
         fill="none"
-        stroke={filled ? "#e8f7f4" : "#0d7377"}
-        strokeWidth="2"
+        stroke="currentColor"
+        strokeWidth="1.8"
         strokeLinecap="round"
       />
       <path
         d="M12.4 16.2 14.2 4.2"
         fill="none"
-        stroke={filled ? "#d5f3ee" : "#0d7377"}
-        strokeWidth={filled ? 1.5 : 1.4}
+        stroke="currentColor"
+        strokeWidth="1.35"
         strokeLinecap="round"
       />
     </svg>
   );
 }
 
-function MiniChest({ look }: { look: LeafRarity }) {
+function ChestArt({ look }: { look: LeafRarity }) {
   return (
-    <span className={`leaf-mini leaf-mini--${look}`} aria-hidden="true">
-      <i className="leaf-mini-lid" />
-      <i className="leaf-mini-box" />
-      <i className="leaf-mini-gem" />
+    <svg className={`leaf-chest-svg leaf-chest-svg--${look}`} viewBox="0 0 72 64" aria-hidden="true">
+      <ellipse className="leaf-chest-shadow" cx="34" cy="60" rx="22" ry="3.2" />
+      <path className="leaf-chest-side" d="M50 26.2 63 21.6V49.2L50 54Z" />
+      <g className="leaf-chest-lid">
+        <path className="leaf-chest-lid-top" d="M8 26.2 46 20.2 58 16.4 16 21.6Z" />
+        <path className="leaf-chest-lid-front" d="M8 26.2h42v7.4c0 1.2-1 2.2-2.2 2.2H10.2A2.2 2.2 0 0 1 8 33.6Z" />
+        <path className="leaf-chest-band" d="M20 25.4 22.4 24.6V35.6L20 35.8Z" />
+        <path className="leaf-chest-band" d="M38 23.6 40.4 22.8V35.6L38 35.8Z" />
+        <path className="leaf-chest-gem" d="M29.5 14.6 34.2 18.4 29.5 22.2 24.8 18.4Z" />
+      </g>
+      <path className="leaf-chest-body" d="M8 33.2h42V52c0 2.2-1.8 4-4 4H12c-2.2 0-4-1.8-4-4Z" />
+      <path className="leaf-chest-band" d="M20 33.2h3.4V56H20Z" />
+      <path className="leaf-chest-band" d="M38 33.2h3.4V56H38Z" />
+      <rect className="leaf-chest-lock" x="24.2" y="38" width="12" height="13.5" rx="2.2" />
+      <circle className="leaf-chest-keyhole" cx="30.2" cy="43.2" r="1.7" />
+      <path className="leaf-chest-keyhole" d="M30.2 44.8v3.1" />
+    </svg>
+  );
+}
+
+function LeafMeter({ slots, large = false }: { slots: LeafPublic["slots"]; large?: boolean }) {
+  return (
+    <span className={`leaf-meter${large ? " leaf-meter--large" : ""}`} aria-hidden="true">
+      {slots.map((slot, index) => (
+        <span key={`${slot.state}-${index}`} className={`leaf-meter-slot leaf-meter-slot--${slot.state}`}>
+          <LeafMark filled={slot.state === "on"} />
+        </span>
+      ))}
     </span>
   );
 }
@@ -255,17 +278,16 @@ export function LeafChestStrip({
       <button type="button" className="leaf-sheet-backdrop" aria-label="Закрыть" onClick={() => setSheet(false)} />
       <div className="leaf-sheet" role="dialog" aria-labelledby="leaf-sheet-title">
         <div className="leaf-sheet-grab" />
-        <h2 id="leaf-sheet-title" className="leaf-sheet-title">
-          {view.ready ? "Сундук твой" : "Три листка"}
-        </h2>
-        <div className="leaf-sheet-leaves">
-          {view.slots.map((slot, index) => (
-            <span key={`${slot.state}-${index}`} className={`leaf-slot leaf-slot--${slot.state}`}>
-              <LeafMark state={slot.state} />
-              {slot.label ? <small>{slot.label}</small> : null}
-            </span>
-          ))}
+        <div className="leaf-sheet-hero">
+          <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+          <div>
+            <h2 id="leaf-sheet-title" className="leaf-sheet-title">
+              {view.ready ? "Сундук твой" : "Сундук"}
+            </h2>
+            <p className="leaf-sheet-count">{view.filled} из 3 листков</p>
+          </div>
         </div>
+        <LeafMeter slots={view.slots} large />
         <p className="leaf-sheet-line">{view.line}</p>
         {view.sheetHint !== view.line ? <p className="leaf-sheet-hint">{view.sheetHint}</p> : null}
         {view.ready && view.rarityLabel ? (
@@ -316,7 +338,7 @@ export function LeafChestStrip({
       ) : (
         <>
           <div className={`leaf-stage leaf-stage--${reward.look} leaf-stage--beat-${beat}`}>
-            <span className="leaf-stage-box" />
+            <ChestArt look={reward.look} />
           </div>
           <button type="button" className="leaf-open-skip" onClick={revealNow}>
             Хватит, покажи подарок
@@ -332,25 +354,20 @@ export function LeafChestStrip({
         id="chest-dock"
         type="button"
         className={`leaf-strip${view.ready ? " leaf-strip--ready" : ""}`}
+        aria-label={`Сундук, ${view.filled} из 3. ${view.line}`}
         onClick={() => {
           setError(null);
           setSheet(true);
         }}
       >
-        <MiniChest look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+        <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
         <span className="leaf-strip-copy">
-          <p>{view.line}</p>
-          <span className="leaf-strip-leaves">
-            {view.slots.map((slot, index) => (
-              <span key={`${slot.state}-${index}`} className={`leaf-slot leaf-slot--${slot.state}`}>
-                <LeafMark state={slot.state} />
-                {slot.label ? <small>{slot.label}</small> : null}
-              </span>
-            ))}
+          <span className="leaf-strip-head">
+            <span className="leaf-strip-title">Сундук</span>
+            <span className="leaf-strip-count">{view.filled} из 3</span>
           </span>
-        </span>
-        <span className="leaf-strip-chev" aria-hidden="true">
-          ›
+          <LeafMeter slots={view.slots} />
+          <p>{view.line}</p>
         </span>
       </button>
       {mounted && sheetNode ? createPortal(sheetNode, document.body) : null}

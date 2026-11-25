@@ -30,25 +30,55 @@ import {
   ideasForMoment,
 } from "./fixture";
 
-const CHEST_PREVIEW: LeafPublic = {
-  line: "Вчера зал, позавчера завтрак — остался сегодняшний листок.",
-  sheetHint: "Сделаешь и то и другое — в сундуке будет редкая вещь.",
-  finePrint: LEAF_FINE_PRINT,
-  filled: 2,
-  ready: false,
-  readyCount: 0,
-  rarity: null,
-  rarityLabel: null,
-  chestLook: "rare",
-  slots: [
-    { state: "on", label: "пт" },
-    { state: "on", label: "сб" },
-    { state: "wait", label: "вс" },
-  ],
-  spareLeaf: false,
-  canSpendSpare: false,
-  pendingNote: null,
-};
+function chestPreview(kind: string | null): LeafPublic {
+  const empty = { state: "empty" as const, label: "" };
+  const on = { state: "on" as const, label: "" };
+  const base = {
+    finePrint: LEAF_FINE_PRINT,
+    readyCount: 0,
+    spareLeaf: false,
+    canSpendSpare: false,
+    pendingNote: null,
+  };
+  if (kind === "0") {
+    return {
+      ...base,
+      line: "Пока пусто. Завтрак или зал — и первый листок.",
+      sheetHint: "Пока пусто. Завтрак или зал — и первый листок.",
+      filled: 0,
+      ready: false,
+      rarity: null,
+      rarityLabel: null,
+      chestLook: "common",
+      slots: [empty, empty, empty],
+    };
+  }
+  if (kind === "ready") {
+    return {
+      ...base,
+      line: "Три дня есть. Можно открывать.",
+      sheetHint: "Сундук твой. Откроем?",
+      filled: 3,
+      ready: true,
+      readyCount: 1,
+      rarity: "rare",
+      rarityLabel: "Редкий",
+      chestLook: "rare",
+      slots: [on, on, on],
+    };
+  }
+  return {
+    ...base,
+    line: "Вчера зал, позавчера завтрак — остался сегодняшний листок.",
+    sheetHint: "Сделаешь и то и другое — в сундуке будет редкая вещь.",
+    filled: 2,
+    ready: false,
+    rarity: null,
+    rarityLabel: null,
+    chestLook: "rare",
+    slots: [on, on, { state: "wait", label: "" }],
+  };
+}
 
 const ICON = {
   width: 20,
@@ -167,7 +197,7 @@ export function TodayHeroPreview() {
                 selectedDate={FIXTURE_DATE}
                 today={FIXTURE_DATE}
                 refreshKey={0}
-                fixture={CHEST_PREVIEW}
+                fixture={chestPreview(params.get("chest"))}
                 initialSheet={params.get("chest") === "sheet"}
               />
               <div className="ration-day-feed ration-meal-feed">
