@@ -49,6 +49,50 @@ test("текст: БЖУ на 100 мл пересчитываются на ст�
   assert.match(buckwheat?.nutritionWarning ?? "", /не сходятся/);
 });
 
+test("текст: 2 шт яиц не предупреждают о массе, 20 г белка 30 — предупреждают", async () => {
+  const eggs = await resolveAssistantTurnActions({
+    rawReply: fence({
+      apply: true,
+      meals: [
+        {
+          name: "Яйца",
+          kcal: 140,
+          protein: 12,
+          fat: 10,
+          carbs: 1,
+          grams: 2,
+          unit: "шт",
+        },
+      ],
+    }),
+    userMessage: "съел 2 яйца",
+    today: "2026-11-04",
+    date: "2026-11-04",
+    allowRepairLlm: false,
+  });
+  const row = eggs.actions?.meals?.[0];
+  assert.equal(row?.kcal, 140);
+  assert.equal(row?.protein, 12);
+  assert.equal(row?.grams, 2);
+  assert.equal(row?.unit, "шт");
+  assert.equal(row?.nutritionWarning, undefined);
+
+  const cheese = await resolveAssistantTurnActions({
+    rawReply: fence({
+      apply: true,
+      meals: [{ name: "Сыр", kcal: 120, protein: 30, fat: 0, carbs: 0, grams: 20, unit: "г" }],
+    }),
+    userMessage: "съел сыр 20 г",
+    today: "2026-11-04",
+    date: "2026-11-04",
+    allowRepairLlm: false,
+  });
+  const heavy = cheese.actions?.meals?.[0];
+  assert.equal(heavy?.protein, 30);
+  assert.equal(heavy?.grams, 20);
+  assert.match(heavy?.nutritionWarning ?? "", /больше порции/);
+});
+
 test("текст: пиво без этанола поднимается по полосе крепости", async () => {
   const out = await resolveAssistantTurnActions({
     rawReply: fence({

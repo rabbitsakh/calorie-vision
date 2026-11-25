@@ -1,5 +1,7 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { gramsPerPiece } from "./piece-portion";
 import { looksLikeDrinkName } from "./portion-unit";
+import { splitQuickPortion } from "./quick-log";
 
 /**
  * Проверка согласованности оценки ИИ перед показом карточки.
@@ -592,7 +594,46 @@ export type TextMealNutrition = {
   carbs?: number;
   fiber?: number;
   grams?: number;
+  /**
+   * г — grams уже граммы. мл — плотность ~1, как у напитков.
+   * шт, ложки, стаканы и прочие счётные единицы — не граммы:
+   * масса берётся из веса одной единицы или из названных в имени граммов.
+   */
+  unit?: string;
 };
+
+/** г и синонимы. Пустая единица — прежние вызовы, где grams уже граммы. */
+function isGramUnit(unit: string): boolean {
+  return /^(?:г|гр|грамм(?:а|ов)?|g|grams?)$/iu.test(unit);
+}
+
+function isMilliliterUnit(unit: string): boolean {
+  return /^(?:мл|ml)$/iu.test(unit);
+}
+
+/**
+ * Масса порции в граммах, если она известна.
+ * Для мл число оставляем: 1 мл ≈ 1 г, так же как в проверке напитков.
+ * Для штук и других счётных единиц — вес одной единицы из справочника,
+ * иначе граммы, прямо названные в имени. Без этого проверки массы не к чему приложить.
+ */
+function portionMassGrams(input: {
+  name: string;
+  amount: number | undefined;
+  unit?: string;
+}): number | undefined {
+  const amount = input.amount;
+  if (amount == null || !(amount > 0)) return undefined;
+  const unit = (input.unit ?? "").trim().toLowerCase().replace(/\./g, "");
+  if (!unit || isGramUnit(unit) || isMilliliterUnit(unit)) return amount;
+
+  const stated = splitQuickPortion(input.name);
+  if (stated.grams != null && stated.grams > 0) return stated.grams;
+
+  const perPiece = gramsPerPiece(input.name);
+  if (perPiece != null && perPiece > 0) return perPiece * amount;
+  return undefined;
+}
 
 export type TextMealReview = {
   kcal?: number;
@@ -612,15 +653,15 @@ const TEXT_WARNING: Partial<Record<NutritionIssueCode, string>> = {
   "macro-energy": "Ккал не сходятся с БЖУ",
 };
 
-function textWarningCodes(next: FoodRecognitionResult): NutritionIssueCode[] {
+function textWarningCodes(next: FoodRecognitionResult, massGrams: number | undefined): NutritionIssueCode[] {
   const codes: NutritionIssueCode[] = [];
   const name = next.dishName ?? "";
   const portion = next.portionGrams && next.portionGrams > 0 ? next.portionGrams : undefined;
   const macros = finiteMacros(next);
   const drink = looksLikeDrinkName(name, next.brand);
-  if (macros && portion && macroMassOverPortion(macros, portion)) codes.push("macro-mass");
-  if (portion && next.calories > 0) {
-    const per100 = kcalPer100(next.calories, portion);
+  if (macros && massGrams != null && macroMassOverPortion(macros, massGrams)) codes.push("macro-mass");
+  if (massGrams != null && next.calories > 0) {
+    const per100 = kcalPer100(next.calories, massGrams);
     const fatty = FATTY_RE.test(name);
     if (!drink && !fatty && per100 > SUSPICIOUS_KCAL_PER_100G) codes.push("density");
   }
@@ -633,10 +674,12 @@ function textWarningCodes(next: FoodRecognitionResult): NutritionIssueCode[] {
 
 /**
  * Санитарная проверка текста. 100 г вместо названной порции и дыру этанола правим.
- * Массу БЖУ, плотность и Атуотер >25% только помечаем.
+ * Массу БЖУ и ккал на 100 г помечаем только если масса порции в граммах известна.
+ * Атуотер >25% помечаем по числам, без пересчёта штук в граммы.
  */
 export function reviewTextMealNutrition(input: TextMealNutrition): TextMealReview {
   const portion = input.grams && input.grams > 0 ? input.grams : undefined;
+  const massGrams = portionMassGrams({ name: input.name, amount: portion, unit: input.unit });
   let next: FoodRecognitionResult = {
     dishName: input.name,
     calories: typeof input.kcal === "number" && input.kcal > 0 ? input.kcal : 0,
@@ -658,7 +701,7 @@ export function reviewTextMealNutrition(input: TextMealNutrition): TextMealRevie
     next = alcoholFixed;
     codes.push("alcohol-gap");
   }
-  const warnings = textWarningCodes(next);
+  const warnings = textWarningCodes(next, massGrams);
   for (const code of warnings) {
     if (!codes.includes(code)) codes.push(code);
   }

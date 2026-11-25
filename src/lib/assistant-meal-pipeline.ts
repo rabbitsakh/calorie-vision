@@ -91,6 +91,7 @@ export function applyTextMealSanity(meals: QuickMeal[]): {
       fat: meal.fat,
       carbs: meal.carbs,
       grams: mealPortionGrams(meal),
+      unit: meal.unit,
     });
     for (const code of review.codes) seen.add(code);
     if (review.codes.length === 0) return meal;

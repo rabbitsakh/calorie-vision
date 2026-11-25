@@ -208,6 +208,74 @@ test("текст: 100 г БЖУ на стакан молока пересчит�
   assert.equal(beer.carbs, 16);
 });
 
+test("штуки не считаются граммами, граммы по-прежнему ловят массу БЖУ", () => {
+  const eggs = reviewTextMealNutrition({
+    name: "Яйца",
+    kcal: 140,
+    protein: 12,
+    fat: 10,
+    carbs: 1,
+    grams: 2,
+    unit: "шт",
+  });
+  assert.equal(eggs.warning, null);
+  assert.equal(eggs.codes.includes("macro-mass"), false);
+  assert.equal(eggs.codes.includes("density"), false);
+  assert.equal(eggs.kcal, 140);
+  assert.equal(eggs.protein, 12);
+  assert.equal(eggs.fat, 10);
+  assert.equal(eggs.carbs, 1);
+
+  const heavyGrams = reviewTextMealNutrition({
+    name: "Сыр",
+    kcal: 120,
+    protein: 30,
+    fat: 0,
+    carbs: 0,
+    grams: 20,
+    unit: "г",
+  });
+  assert.ok(heavyGrams.codes.includes("macro-mass"));
+  assert.equal(heavyGrams.protein, 30);
+  assert.match(heavyGrams.warning ?? "", /больше порции/);
+
+  const heavyMl = reviewTextMealNutrition({
+    name: "Соус",
+    kcal: 80,
+    protein: 30,
+    fat: 0,
+    carbs: 0,
+    grams: 20,
+    unit: "мл",
+  });
+  assert.ok(heavyMl.codes.includes("macro-mass"));
+
+  const unknownPiece = reviewTextMealNutrition({
+    name: "Зефир",
+    kcal: 120,
+    protein: 30,
+    fat: 0,
+    carbs: 0,
+    grams: 2,
+    unit: "шт",
+  });
+  assert.equal(unknownPiece.warning, null);
+  assert.equal(unknownPiece.codes.includes("macro-mass"), false);
+  assert.equal(unknownPiece.codes.includes("density"), false);
+
+  const heavyEggs = reviewTextMealNutrition({
+    name: "Яйца",
+    kcal: 720,
+    protein: 80,
+    fat: 40,
+    carbs: 10,
+    grams: 2,
+    unit: "шт",
+  });
+  assert.ok(heavyEggs.codes.includes("macro-mass"));
+  assert.match(heavyEggs.warning ?? "", /больше порции/);
+});
+
 test("промпт просит ориентиры веса, скрытый жир и строгий JSON", () => {
   assert.match(FOOD_RECOGNITION_PROMPT, /тарелка ≈25 см/);
   assert.match(FOOD_RECOGNITION_PROMPT, /вилка ≈19 см/);
