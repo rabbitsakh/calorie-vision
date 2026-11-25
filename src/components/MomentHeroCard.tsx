@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { shownWaterMl, shownWaterTargetMl } from "@/lib/day-facts";
 import {
   buildMomentHero,
   pickSoftStep,
@@ -415,8 +416,8 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       hasTarget: meals?.target != null,
       protein: meals?.totalProtein ?? 0,
       proteinTarget: meals?.target?.protein ?? 0,
-      waterMl: water?.totalMl ?? 0,
-      waterTarget: water?.target ?? 0,
+      waterMl: shownWaterMl(water?.totalMl),
+      waterTarget: shownWaterTargetMl(water?.target),
       postWorkout: hasFreshPostWorkoutNudge(),
       weekNudge: streak?.weekNudge ?? null,
       daysLoggedThisWeek: streak?.daysLoggedThisWeek ?? 0,
@@ -442,8 +443,8 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       fatTarget: meals?.target?.fat ?? null,
       carbs: meals?.totalCarbs ?? 0,
       carbsTarget: meals?.target?.carbs ?? null,
-      waterMl: water?.totalMl ?? 0,
-      waterTarget: water?.target ?? 0,
+      waterMl: shownWaterMl(water?.totalMl),
+      waterTarget: shownWaterTargetMl(water?.target),
       streak: streak?.streak ?? 0,
       softStep,
       chest,

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { shownWaterMl, shownWaterTargetMl } from "@/lib/day-facts";
 import {
   gymSessionEvent,
   waterFeedEvent,
@@ -43,8 +44,8 @@ export function useDayFeedEvents(date: string, refreshKey: number): DayFeedEvent
       .filter((e): e is DayFeedEvent => e != null);
     const w = weightEvent(weightKg);
     const waterEv = waterFeedEvent({
-      totalMl: water?.totalMl ?? 0,
-      target: water?.target ?? 0,
+      totalMl: shownWaterMl(water?.totalMl),
+      target: shownWaterTargetMl(water?.target),
     });
     return [...(w ? [w] : []), ...(waterEv ? [waterEv] : []), ...events];
   }, [sessions, weightKg, water?.totalMl, water?.target]);

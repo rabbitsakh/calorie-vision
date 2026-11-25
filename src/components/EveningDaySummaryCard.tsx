@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { shownWaterMl, shownWaterTargetMl } from "@/lib/day-facts";
 import { isLikelyOfflineError, shouldQueueMealSave } from "@/lib/connectivity";
 import {
   buildEveningDaySummary,
@@ -263,14 +264,14 @@ export function EveningDaySummaryCard({
         protein: meals.totalProtein ?? 0,
         fat: meals.totalFat ?? 0,
         carbs: meals.totalCarbs ?? 0,
-        waterMl: day?.data?.water.totalMl ?? 0,
+        waterMl: shownWaterMl(day?.data?.water.totalMl),
       },
       targets: {
         calories: meals.target?.calories ?? null,
         protein: meals.target?.protein ?? null,
         fat: meals.target?.fat ?? null,
         carbs: meals.target?.carbs ?? null,
-        waterMl: day?.data?.water.target ?? null,
+        waterMl: shownWaterTargetMl(day?.data?.water.target) || null,
       },
       history: [...todayFoods, ...extraHistory],
     });

@@ -23,10 +23,11 @@ import {
   kindUsesRestTimer,
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
+import { sessionBillableElapsedSec } from "@/lib/day-facts";
+import { notifyWorkoutDayChanged } from "@/lib/workout-day-refresh";
 import {
   applyResume,
   formatSessionClock,
-  sessionElapsedSec,
 } from "@/lib/workouts/session-clock";
 import {
   browserResumeStorage,
@@ -251,6 +252,7 @@ type SessionExercise = {
     load: number;
     /** Optimistic offline draft — not yet on server. */
     pendingLocal?: boolean;
+    createdAt?: string | null;
   }>;
   lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
@@ -1063,12 +1065,7 @@ export function WorkoutsView({
   const liveElapsedLabel = useMemo(() => {
     if (!detail?.startedAt) return detail?.elapsedLabel ?? "00:00";
     void clockTick;
-    const sec = sessionElapsedSec({
-      startedAt: detail.startedAt,
-      endedAt: detail.endedAt ?? null,
-      pausedAt: detail.pausedAt ?? null,
-      pausedMs: detail.pausedMs ?? 0,
-    });
+    const sec = sessionBillableElapsedSec(detail);
     return formatSessionClock(sec);
   }, [detail, clockTick]);
 
@@ -1091,6 +1088,7 @@ export function WorkoutsView({
         pausedAt: null,
         pausedMs: 0,
       });
+      notifyWorkoutDayChanged(detail.date);
       return;
     }
     try {
@@ -1112,6 +1110,7 @@ export function WorkoutsView({
       setDetail(data.session);
       setProgress(data.progress);
       setCompare(data.compare ?? null);
+      notifyWorkoutDayChanged(data.session.date);
       void loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить время");
@@ -1141,6 +1140,7 @@ export function WorkoutsView({
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
         writeWorkoutResumeId(browserResumeStorage(), null);
+        notifyWorkoutDayChanged(detail.date);
         setError("Итог на устройстве — отправим при связи");
         return;
       }
@@ -1204,6 +1204,7 @@ export function WorkoutsView({
       setDetail(data.session);
       setProgress(data.progress);
       setCompare(data.compare ?? null);
+      notifyWorkoutDayChanged(data.session.date);
       if (clock === "start" || clock === "resume" || clock === "pause" || clock === "finish") {
         quietGymNudgeForToday(clock !== "finish");
       }
@@ -1225,6 +1226,7 @@ export function WorkoutsView({
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
         writeWorkoutResumeId(browserResumeStorage(), null);
+        notifyWorkoutDayChanged(detail.date);
         setError("Итог сохранён на устройстве — отправим при связи");
         return;
       }
@@ -1439,6 +1441,7 @@ export function WorkoutsView({
       setDetail(data.session);
       setProgress(data.progress);
       setCompare(data.compare ?? null);
+      notifyWorkoutDayChanged(data.session.date);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
       setSetDrafts((prev) => {
         const next = { ...prev };
@@ -2365,9 +2368,11 @@ export function WorkoutsView({
           body: JSON.stringify({ date }),
         }),
       );
+      notifyWorkoutDayChanged(detail.date);
       setDetail(data.session);
       setProgress(data.progress);
       setCompare(data.compare ?? null);
+      notifyWorkoutDayChanged(data.session.date);
       void loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сменить дату");
@@ -2600,7 +2605,9 @@ export function WorkoutsView({
       return;
     }
     try {
+      const date = detail.date;
       await readJson(await fetch(withBasePath(`/api/workouts/${detail.id}`), { method: "DELETE" }));
+      notifyWorkoutDayChanged(date);
       leaveLiveSession();
       setDetail(null);
       setActiveId(null);

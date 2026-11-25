@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
+import { sumWaterMl } from "@/lib/day-facts";
 import { buildDayMealsPayload } from "@/lib/day-meals";
 import { mondayWeekWrapTip } from "@/lib/motivation-voice";
 import { computeLastWeekStats } from "@/lib/push-reminders";
@@ -41,12 +42,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const [meals, streak, waterAgg, account, weekRows, diaryNote, weightEntry] = await Promise.all([
+    const [meals, streak, waterRows, account, weekRows, diaryNote, weightEntry] = await Promise.all([
       buildDayMealsPayload(userId, date),
       buildStreakPayload(userId, todayParam),
-      prisma.waterEntry.aggregate({
+      prisma.waterEntry.findMany({
         where: { userId, date },
-        _sum: { ml: true },
+        select: { ml: true },
       }),
       accountPromise,
       accountPromise.then((acc) => {
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
         meals,
         streak,
         water: {
-          totalMl: waterAgg._sum.ml ?? 0,
+          totalMl: sumWaterMl(waterRows),
           target: waterTarget,
         },
         account: {

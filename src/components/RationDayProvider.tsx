@@ -15,6 +15,7 @@ import { buildEmptyOfflineRationDay } from "@/lib/offline-ration-day";
 import { withBasePath } from "@/lib/paths";
 import { readRationDayCache, writeRationDayCache } from "@/lib/ration-day-cache";
 import { RATION_DAY_CACHE_UPDATED_EVENT } from "@/lib/ration-day-cache-optimistic";
+import { WORKOUT_DAY_CHANGED_EVENT } from "@/lib/workout-day-refresh";
 import type { DayMealsResponse } from "@/types";
 
 export type RationDayStreak = {
@@ -211,6 +212,27 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
     window.addEventListener(RATION_DAY_CACHE_UPDATED_EVENT, onCacheUpdated);
     return () => window.removeEventListener(RATION_DAY_CACHE_UPDATED_EVENT, onCacheUpdated);
   }, [markReady]);
+
+  // Правка тренировки сбрасывает кэш. Пока «Сегодня» открыто — пересчитать норму и воду.
+  useEffect(() => {
+    function onWorkoutDay(event: Event) {
+      const detail = (event as CustomEvent<{ date?: string }>).detail;
+      if (detail?.date && detail.date !== dateRef.current) return;
+      void refresh(true);
+    }
+    function onVisible() {
+      if (document.visibilityState === "hidden") return;
+      void refresh(true);
+    }
+    window.addEventListener(WORKOUT_DAY_CHANGED_EVENT, onWorkoutDay);
+    window.addEventListener("pageshow", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener(WORKOUT_DAY_CHANGED_EVENT, onWorkoutDay);
+      window.removeEventListener("pageshow", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refresh]);
 
   const bump = useCallback(() => setRefreshKey((v) => v + 1), []);
 

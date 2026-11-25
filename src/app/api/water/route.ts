@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { sumWaterMl } from "@/lib/day-facts";
 import { loadDisplayedWaterTargetMl } from "@/lib/day-norm-load";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
       waterTargetForUser(session.user.id, date),
     ]);
 
-    const totalMl = entries.reduce((sum, e) => sum + e.ml, 0);
+    const totalMl = sumWaterMl(entries);
     return NextResponse.json({ totalMl, target, entries });
   } catch (error) {
     console.error(error);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       }),
       waterTargetForUser(session.user.id, date),
     ]);
-    const totalMl = all.reduce((sum, e) => sum + e.ml, 0);
+    const totalMl = sumWaterMl(all);
 
     return NextResponse.json({ entry, totalMl, target });
   } catch (error) {
