@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { buildDayMealsPayload } from "@/lib/day-meals";
 import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
-import { resolveWaterTargetMl } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
 import { buildStreakPayload } from "@/lib/streak-payload";
@@ -47,7 +46,6 @@ export async function loadAdminAssistantContextPack(
     select: {
       ...DIET_PROFILE_SELECT,
       timezone: true,
-      waterTargetMl: true,
       assistantPrefsJson: true,
     },
   });
@@ -170,7 +168,7 @@ export async function loadAdminAssistantContextPack(
     weightKg: weightEntry?.weightKg ?? null,
     weightTrend: weightHistory.map((w) => ({ date: w.date, kg: w.weightKg })),
     waterMl: waterAgg._sum.ml ?? 0,
-    waterTargetMl: resolveWaterTargetMl(account?.waterTargetMl),
+    waterTargetMl: day.waterTargetMl,
     streakDays: typeof streak.streak === "number" ? streak.streak : null,
     challenge: challengeLabel,
     day: {

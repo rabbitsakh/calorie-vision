@@ -4,6 +4,7 @@
  */
 
 import type { RationDayPayload } from "@/components/RationDayProvider";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 export function buildEmptyOfflineRationDay(
   date: string,
@@ -47,7 +48,7 @@ export function buildEmptyOfflineRationDay(
       daysInWeekSoFar: 1,
       weekNudge: null,
     },
-    water: { totalMl: 0, target: 2000 },
+    water: { totalMl: 0, target: WATER_DAILY_TARGET_ML },
     account: {
       sex: null,
       heightCm: null,

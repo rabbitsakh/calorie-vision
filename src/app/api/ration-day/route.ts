@@ -7,7 +7,6 @@ import { computeLastWeekStats } from "@/lib/push-reminders";
 import { prisma } from "@/lib/prisma";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
-import { resolveWaterTargetMl } from "@/lib/water-target";
 import { loadActiveChallengeForUser } from "@/lib/challenge-progress";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
@@ -73,7 +72,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const waterTarget = meals.waterTargetMl ?? resolveWaterTargetMl(account?.waterTargetMl);
+    const waterTarget = meals.waterTargetMl;
     const weekStart = weekStartMonday(date, account?.timezone ?? null);
     const caloriesByDate = new Map(
       weekRows.map((row) => [row.date, row._sum.calories ?? 0]),

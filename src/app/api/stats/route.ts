@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
-import { loadDayNorm } from "@/lib/day-norm-load";
+import { loadDayNorm, loadDisplayedWaterTargetMl } from "@/lib/day-norm-load";
 import { DIET_PROFILE_SELECT, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { hourInTimezone } from "@/lib/meal-type";
 import { prisma } from "@/lib/prisma";
 import { buildMoodFoodInsight, detectCalorieCorridorStreak } from "@/lib/stats-insights";
-import { resolveWaterTargetMl } from "@/lib/water-target";
 import {
   computeWeightChangeKg,
   medianWeightByDate,
@@ -167,7 +166,9 @@ export async function GET(request: NextRequest) {
         : 0;
     const fiberTarget = norm?.target.fiber ?? null;
     const sugarTarget = norm?.target.sugar ?? null;
-    const waterTarget = norm?.target.waterMl ?? resolveWaterTargetMl(user?.waterTargetMl);
+    const waterTarget = norm
+      ? norm.target.waterMl
+      : await loadDisplayedWaterTargetMl(session.user.id, end);
 
     const waterByDate = new Map<string, number>();
     for (const entry of waterEntries) {

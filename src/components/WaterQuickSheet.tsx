@@ -5,6 +5,7 @@ import { toDateKeyTz } from "@/lib/dates";
 import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 import { notifyWaterLogged, OPEN_WATER_QUICK_EVENT } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
+import { readRationDayCache } from "@/lib/ration-day-cache";
 import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { useTimezone } from "@/lib/use-timezone";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
@@ -45,13 +46,18 @@ export function WaterQuickSheet() {
 
   useEffect(() => {
     function onOpen() {
+      const cached = readRationDayCache(dateKey);
+      if (cached?.water && cached.water.target > 0) {
+        setTotalMl(cached.water.totalMl);
+        setTarget(cached.water.target);
+      }
       setOpen(true);
       setDoneMsg(null);
       void load();
     }
     window.addEventListener(OPEN_WATER_QUICK_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_WATER_QUICK_EVENT, onOpen);
-  }, [load]);
+  }, [dateKey, load]);
 
   useEffect(() => {
     if (!open) return;

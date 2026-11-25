@@ -41,7 +41,10 @@ export type UserReminderContext = {
   totalCalories: number;
   calorieTarget: number | null;
   waterMl: number;
-  /** Personal water goal (ml); falls back to default when omitted. */
+  /**
+   * Норма воды на сегодня, мл: та же цифра, что на экране.
+   * Cron подставляет расчёт из профиля. Если поля нет — запасные 2000.
+   */
   waterTargetMl?: number | null;
   streak: number;
   streakBeforeToday: number;

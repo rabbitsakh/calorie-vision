@@ -44,7 +44,7 @@ export const WATER_HABIT_DAY_ML = 1500;
 const WATER_TARGET_MIN_ML = 500;
 const WATER_TARGET_MAX_ML = 6000;
 
-/** Resolve personal water goal or fall back to the shared default. */
+/** Resolve a stored manual goal or fall back to the shared default. */
 export function resolveWaterTargetMl(override?: number | null): number {
   if (
     override != null &&
@@ -55,6 +55,38 @@ export function resolveWaterTargetMl(override?: number | null): number {
     return Math.round(override);
   }
   return WATER_DAILY_TARGET_ML;
+}
+
+/**
+ * Одна цифра нормы на экране, в ответе «Стакан», в кэше дня, в статистике и в пушах.
+ * Если день уже посчитан через resolveDayNorm — берём его воду.
+ * Иначе ручная цель, если она задана, иначе расчёт от веса.
+ * Формула recommendWaterMl не меняется. 2000 мл остаётся только когда веса нет.
+ */
+export function displayedWaterTargetMl(input: {
+  normWaterMl?: number | null;
+  manualWaterTargetMl?: number | null;
+  weightKg?: number | null;
+  sex?: "MALE" | "FEMALE" | null;
+  trainingDay?: boolean;
+  heightCm?: number | null;
+}): number {
+  if (
+    input.normWaterMl != null &&
+    Number.isFinite(input.normWaterMl) &&
+    input.normWaterMl > 0
+  ) {
+    return Math.round(input.normWaterMl);
+  }
+  if (input.manualWaterTargetMl != null) {
+    return resolveWaterTargetMl(input.manualWaterTargetMl);
+  }
+  return recommendWaterMl(
+    input.weightKg ?? 0,
+    input.sex,
+    Boolean(input.trainingDay),
+    input.heightCm,
+  );
 }
 
 export function isValidWaterTargetMl(value: unknown): value is number {

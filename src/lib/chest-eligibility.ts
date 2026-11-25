@@ -3,8 +3,7 @@ import { toDateKeyTz } from "@/lib/dates";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
-import { loadDayNorm } from "@/lib/day-norm-load";
-import { resolveWaterTargetMl } from "@/lib/water-target";
+import { loadDayNorm, loadDisplayedWaterTargetMl } from "@/lib/day-norm-load";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -97,7 +96,7 @@ export async function assertQuestDayEligible(
   }
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true, waterTargetMl: true },
+    select: { timezone: true },
   });
   const today = toDateKeyTz(new Date(), user?.timezone);
   if (date > today) {
@@ -112,7 +111,9 @@ export async function assertQuestDayEligible(
     }),
   ]);
   const norm = await loadDayNorm(userId, date);
-  const waterTarget = norm?.target.waterMl ?? resolveWaterTargetMl(user?.waterTargetMl);
+  const waterTarget = norm
+    ? norm.target.waterMl
+    : await loadDisplayedWaterTargetMl(userId, date);
   const waterMl = waterAgg._sum.ml ?? 0;
   const { allDone } = computeDailyQuests({
     mealCount,

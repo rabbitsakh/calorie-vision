@@ -18,6 +18,7 @@ import {
 } from "@/lib/push-reminder-schedule";
 import { pickGymReminderCopy } from "@/lib/push-gym-reminder";
 import { formatWaterLiters, formatWaterOf } from "@/lib/water-display";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { getQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import { readRationDayCache } from "@/lib/ration-day-cache";
@@ -158,7 +159,9 @@ export function diarySnapshotFromRationDay(
         : null,
     waterMl: Math.max(0, Math.round(Number(payload.water?.totalMl) || 0)),
     waterTargetMl:
-      Number.isFinite(waterTarget) && waterTarget > 0 ? Math.round(waterTarget) : 2000,
+      Number.isFinite(waterTarget) && waterTarget > 0
+        ? Math.round(waterTarget)
+        : WATER_DAILY_TARGET_ML,
     hasBreakfast: types.has("BREAKFAST"),
     hasLunch: types.has("LUNCH"),
     hasDinner: types.has("DINNER"),

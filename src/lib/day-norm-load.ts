@@ -7,11 +7,12 @@ import { resolveDayNorm, type DayNormResult } from "@/lib/day-norm";
 import { DIET_PROFILE_SELECT, isActivityLevel, isGoalPace, isSex, isWeightGoal } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 import { isNotableTrainingSession } from "@/lib/training-day";
+import { displayedWaterTargetMl } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { estimateDbSessionEnergy } from "@/lib/workouts/energy";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
 
-export async function loadDayNorm(userId: string, date: string): Promise<DayNormResult | null> {
+async function loadDayContext(userId: string, date: string) {
   const [user, weight, latestWeight, sessions] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -35,8 +36,7 @@ export async function loadDayNorm(userId: string, date: string): Promise<DayNorm
       include: sessionInclude,
     }),
   ]);
-  if (!user || !isWeightGoal(user.goal) || !weight) return null;
-  const burnWeight = latestWeight?.weightKg ?? weight.weightKg;
+  const burnWeight = latestWeight?.weightKg ?? weight?.weightKg ?? null;
   const trained = sessions.map((row) => {
     const summary = serializeSessionSummary(row);
     const energy = estimateDbSessionEnergy(row, burnWeight);
@@ -55,6 +55,14 @@ export async function loadDayNorm(userId: string, date: string): Promise<DayNorm
     };
   });
   const notable = trained.filter((session) => session.notable);
+  return { user, weight, burnWeight, trained, notable };
+}
+
+function normFromContext(
+  ctx: Awaited<ReturnType<typeof loadDayContext>>,
+): DayNormResult | null {
+  const { user, weight, trained, notable } = ctx;
+  if (!user || !isWeightGoal(user.goal) || !weight) return null;
   return resolveDayNorm({
     weightKg: weight.weightKg,
     goal: user.goal,
@@ -70,5 +78,24 @@ export async function loadDayNorm(userId: string, date: string): Promise<DayNorm
     fiberTargetG: user.fiberTargetG,
     sugarTargetG: user.sugarTargetG,
     waterTargetMl: user.waterTargetMl,
+  });
+}
+
+export async function loadDayNorm(userId: string, date: string): Promise<DayNormResult | null> {
+  return normFromContext(await loadDayContext(userId, date));
+}
+
+/** Та же норма воды, что у ленты дня: ручная цель или расчёт от веса и тренировки. */
+export async function loadDisplayedWaterTargetMl(userId: string, date: string): Promise<number> {
+  const ctx = await loadDayContext(userId, date);
+  const norm = normFromContext(ctx);
+  const sex = ctx.user && isSex(ctx.user.sex) ? ctx.user.sex : null;
+  return displayedWaterTargetMl({
+    normWaterMl: norm?.target.waterMl ?? null,
+    manualWaterTargetMl: ctx.user?.waterTargetMl ?? null,
+    weightKg: ctx.burnWeight,
+    sex,
+    trainingDay: ctx.notable.length > 0,
+    heightCm: ctx.user?.heightCm ?? null,
   });
 }

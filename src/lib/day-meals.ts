@@ -13,7 +13,7 @@ import {
 } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { isNotableTrainingSession } from "@/lib/training-day";
-import { recommendWaterMl, resolveWaterTargetMl } from "@/lib/water-target";
+import { displayedWaterTargetMl } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { estimateDbSessionEnergy } from "@/lib/workouts/energy";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
@@ -99,11 +99,14 @@ export async function buildDayMealsPayload(userId: string, date: string) {
       : null;
   const target = norm?.target ?? null;
   const trainingDay = norm?.training ?? null;
-  const waterTargetMl =
-    norm?.target.waterMl ??
-    (user?.waterTargetMl != null
-      ? resolveWaterTargetMl(user.waterTargetMl)
-      : recommendWaterMl(burnWeightKg ?? 0, sex, notable.length > 0, user?.heightCm));
+  const waterTargetMl = displayedWaterTargetMl({
+    normWaterMl: norm?.target.waterMl,
+    manualWaterTargetMl: user?.waterTargetMl,
+    weightKg: burnWeightKg,
+    sex,
+    trainingDay: notable.length > 0,
+    heightCm: user?.heightCm,
+  });
   const qualifyingWorkout = sessions.some((row) =>
     sessionQualifiesForGymReward(
       row.endedAt != null,
