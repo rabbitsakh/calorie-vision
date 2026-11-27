@@ -12295,7 +12295,7 @@ html:has(.onboarding-screen) .bottom-composer {
 /* Day chest — same card surface as the rest of «Сегодня». */
 .leaf-strip {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
   column-gap: 12px;
   width: 100%;
@@ -12311,7 +12311,7 @@ html:has(.onboarding-screen) .bottom-composer {
 }
 .leaf-strip--ready {
   border-color: color-mix(in srgb, var(--accent-streak) 70%, var(--border-quiet));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 45%, transparent), var(--shadow-card);
+  animation: leaf-card-pulse 1.8s ease-in-out infinite;
 }
 .leaf-strip-copy {
   min-width: 0;
@@ -12366,6 +12366,7 @@ html:has(.onboarding-screen) .bottom-composer {
   border-color: transparent;
   background: var(--accent-soft);
   color: var(--accent-ink);
+  animation: leaf-slot-pop 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .leaf-mark {
   width: 20px;
@@ -12384,13 +12385,27 @@ html:has(.onboarding-screen) .bottom-composer {
   width: 32px;
   height: 32px;
 }
-.leaf-chest-svg {
+.leaf-chest-frame {
+  display: grid;
   width: 64px;
-  height: 56px;
+  height: 64px;
+  place-items: center;
+  border-radius: 16px;
+  border: 1.5px solid transparent;
+}
+.leaf-chest-frame--common { border-color: #c4a574; background: color-mix(in srgb, #c4a574 16%, transparent); }
+.leaf-chest-frame--rare { border-color: #1aa6a6; background: color-mix(in srgb, #1aa6a6 16%, transparent); box-shadow: 0 0 0 1px rgba(26, 166, 166, 0.28); }
+.leaf-chest-frame--epic { border-color: #3ec6e0; background: color-mix(in srgb, #3ec6e0 18%, transparent); box-shadow: 0 0 14px rgba(62, 198, 224, 0.45); }
+.leaf-chest-frame--gold { border-color: #e8b23a; background: color-mix(in srgb, #e8b23a 18%, transparent); box-shadow: 0 0 14px rgba(232, 178, 58, 0.5); }
+.leaf-chest-svg {
+  width: 58px;
+  height: 52px;
   display: block;
 }
 .leaf-chest-shadow { fill: #000; opacity: 0.28; }
 .leaf-chest-keyhole { fill: none; stroke-width: 1.6; stroke-linecap: round; }
+.leaf-chest-plank { fill: none; stroke: rgba(255, 255, 255, 0.28); stroke-width: 1.2; }
+.leaf-chest-rivet { fill: #f6e7c4; }
 .leaf-chest-svg--common .leaf-chest-body { fill: #8d5a32; }
 .leaf-chest-svg--common .leaf-chest-side { fill: #5c3a22; }
 .leaf-chest-svg--common .leaf-chest-lid-top { fill: #f3ddb4; }
@@ -12415,13 +12430,33 @@ html:has(.onboarding-screen) .bottom-composer {
 .leaf-chest-svg--gold .leaf-chest-lock { fill: #713f06; }
 .leaf-chest-svg--gold .leaf-chest-keyhole { stroke: #fff4c8; }
 .leaf-chest-svg--gold .leaf-chest-gem { fill: #fb7185; }
+.leaf-chest-svg--epic .leaf-chest-body { fill: #145e6e; }
+.leaf-chest-svg--epic .leaf-chest-side { fill: #0b3a44; }
+.leaf-chest-svg--epic .leaf-chest-side-edge { fill: #1c7490; }
+.leaf-chest-svg--epic .leaf-chest-lid-top { fill: #e7fbff; }
+.leaf-chest-svg--epic .leaf-chest-lid-front { fill: #3ec6e0; }
+.leaf-chest-svg--epic .leaf-chest-band { fill: #f4f7f2; }
+.leaf-chest-svg--epic .leaf-chest-lock { fill: #0b3a44; }
+.leaf-chest-svg--epic .leaf-chest-keyhole { stroke: #e7fbff; }
+.leaf-chest-svg--epic .leaf-chest-gem { fill: #7ee7ff; }
+.leaf-chest-svg--common .leaf-chest-side-edge { fill: #8a5a32; }
+.leaf-chest-svg--rare .leaf-chest-side-edge { fill: #14998f; }
+.leaf-chest-svg--gold .leaf-chest-side-edge { fill: #e8b23a; }
 .leaf-chest-lid {
-  transform-box: view-box;
-  transform-origin: 32px 26px;
-  transition: transform 0.45s ease;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
 }
 .leaf-strip--ready .leaf-chest-svg {
   animation: leaf-ready-glow 1.8s ease-in-out infinite;
+}
+@keyframes leaf-slot-pop {
+  0% { transform: scale(0.86); }
+  62% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes leaf-card-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 35%, transparent), var(--shadow-card); }
+  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-streak) 70%, transparent), 0 0 18px color-mix(in srgb, var(--accent-streak) 45%, transparent); }
 }
 @keyframes leaf-ready-glow {
   0%, 100% { filter: drop-shadow(0 0 0 transparent); }
@@ -12525,22 +12560,66 @@ html:has(.onboarding-screen) .bottom-composer {
   justify-content: center;
   gap: 22px;
   padding: 24px;
-  background: radial-gradient(circle at 50% 42%, #3a2a16 0%, #14110e 62%);
-  color: #fff8ea;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, #1c3330 0%, #101816 62%);
+  color: var(--foreground);
 }
 .leaf-stage {
-  width: 200px;
-  height: 176px;
+  position: relative;
+  z-index: 2;
+  width: 220px;
+  height: 196px;
 }
 .leaf-stage .leaf-chest-svg {
-  width: 200px;
-  height: 176px;
+  width: 220px;
+  height: 196px;
 }
-.leaf-stage--beat-1 .leaf-chest-lid { transform: rotate(-12deg); }
-.leaf-stage--beat-2 .leaf-chest-lid,
-.leaf-stage--beat-3 .leaf-chest-lid { transform: rotate(-34deg) translateY(-2px); }
-.leaf-stage--beat-2 .leaf-chest-svg,
-.leaf-stage--beat-3 .leaf-chest-svg { filter: drop-shadow(0 0 18px rgba(255, 196, 92, 0.65)); }
+.leaf-open--play .leaf-stage {
+  animation: leaf-chest-shake 0.48s ease-in-out 1;
+}
+.leaf-open--play .leaf-chest-lid {
+  animation: leaf-lid-open 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.48s forwards;
+}
+.leaf-rays,
+.leaf-flash {
+  position: absolute;
+  pointer-events: none;
+}
+.leaf-rays {
+  z-index: 1;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  opacity: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 120, 0.0) 0 14deg, rgba(255, 214, 120, 0.38) 14deg 18deg);
+  animation: leaf-rays-in 0.9s ease-out 0.9s forwards;
+}
+.leaf-flash {
+  z-index: 3;
+  inset: 0;
+  background: radial-gradient(circle at 50% 46%, rgba(255, 244, 214, 0.72), transparent 42%);
+  opacity: 0;
+  animation: leaf-flash 0.55s ease-out 1.05s forwards;
+}
+.leaf-loot-fly {
+  position: relative;
+  z-index: 4;
+  margin: 0;
+  min-height: 1.4em;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff8ea;
+  opacity: 0;
+  animation: leaf-loot-out 0.7s cubic-bezier(0.22, 1, 0.36, 1) 1.25s forwards;
+}
+.leaf-open--reduce .leaf-stage,
+.leaf-open--reduce .leaf-chest-lid,
+.leaf-open--reduce .leaf-rays,
+.leaf-open--reduce .leaf-flash,
+.leaf-open--reduce .leaf-loot-fly {
+  animation: none;
+}
+.leaf-open--reduce .leaf-loot-fly { opacity: 1; }
 .leaf-open-skip {
   border: 0;
   background: transparent;
@@ -12558,29 +12637,95 @@ html:has(.onboarding-screen) .bottom-composer {
   color: var(--foreground);
   text-align: center;
 }
-.leaf-open-card h2 { margin: 6px 0; font-size: 1.5rem; color: var(--foreground); }
-.leaf-open-card p { margin: 0; color: var(--muted-strong); }
+.leaf-open-card {
+  position: relative;
+}
+.leaf-open-card h2 { margin: 4px 0 8px; font-size: 1.75rem; line-height: 1.15; color: var(--foreground); }
+.leaf-open-card > p { margin: 0; color: var(--muted-strong); }
+.leaf-open-glyph {
+  margin: 8px 0 0;
+  font-size: 2.4rem;
+  line-height: 1;
+}
 .leaf-open-rarity {
+  margin-top: 12px;
   font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--accent-ink);
 }
+.leaf-open-card .leaf-chest-frame { margin: 0 auto; }
 .leaf-open-card .leaf-sheet-open { margin-top: 16px; }
+.leaf-confetti { position: absolute; inset: 0; pointer-events: none; }
+.leaf-confetti i {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  animation: leaf-confetti-fall 1.25s ease-in forwards;
+}
+.leaf-confetti i:nth-child(4n) { left: 12%; background: #1aa6a6; animation-delay: 0.02s; }
+.leaf-confetti i:nth-child(4n + 1) { left: 32%; background: #e8b23a; animation-delay: 0.08s; }
+.leaf-confetti i:nth-child(4n + 2) { left: 58%; background: #f6e7c4; animation-delay: 0.04s; }
+.leaf-confetti i:nth-child(4n + 3) { left: 78%; background: #3ec6e0; animation-delay: 0.12s; }
+@keyframes leaf-chest-shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  18% { transform: translateX(-4px) rotate(-1.6deg); }
+  36% { transform: translateX(4px) rotate(1.6deg); }
+  54% { transform: translateX(-3px) rotate(-1deg); }
+  72% { transform: translateX(3px) rotate(1deg); }
+}
+@keyframes leaf-lid-open {
+  to { transform: translateY(-18px); }
+}
+@keyframes leaf-rays-in {
+  from { opacity: 0; transform: scale(0.7) rotate(0deg); }
+  to { opacity: 1; transform: scale(1) rotate(18deg); }
+}
+@keyframes leaf-flash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes leaf-loot-out {
+  from { opacity: 0; transform: translateY(36px) scale(0.72); }
+  to { opacity: 1; transform: translateY(-8px) scale(1); }
+}
+@keyframes leaf-confetti-fall {
+  to { transform: translateY(280px) rotate(160deg); opacity: 0.2; }
+}
 @media (prefers-reduced-motion: reduce) {
   .leaf-chest-lid,
-  .leaf-strip--ready .leaf-chest-svg { transition: none; animation: none; }
+  .leaf-strip--ready,
+  .leaf-strip--ready .leaf-chest-svg,
+  .leaf-meter-slot--on,
+  .leaf-open--play .leaf-stage,
+  .leaf-open--play .leaf-chest-lid,
+  .leaf-rays,
+  .leaf-flash,
+  .leaf-loot-fly,
+  .leaf-confetti i { animation: none; }
+  .leaf-strip--ready {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 55%, transparent), var(--shadow-card);
+  }
   .leaf-strip--ready .leaf-chest-svg {
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-streak) 75%, white));
   }
 }
 @media (max-width: 360px) {
   .leaf-strip {
-    grid-template-columns: 52px minmax(0, 1fr);
-    padding: 10px 12px;
-    column-gap: 10px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    padding: 10px;
+    column-gap: 8px;
   }
-  .leaf-chest-svg { width: 52px; height: 46px; }
-  .leaf-meter-slot { height: 28px; }
+  .leaf-chest-frame { width: 56px; height: 56px; border-radius: 14px; }
+  .leaf-strip .leaf-chest-svg { width: 50px; height: 44px; }
+  .leaf-strip-title { font-size: 0.92rem; }
+  .leaf-strip-count { font-size: 0.75rem; }
+  .leaf-strip-copy p { font-size: 0.8125rem; }
+  .leaf-meter { gap: 4px; }
+  .leaf-meter-slot { height: 28px; border-radius: 8px; }
+  .leaf-mark { width: 18px; height: 18px; }
 }

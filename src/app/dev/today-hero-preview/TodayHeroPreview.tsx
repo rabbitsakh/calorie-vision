@@ -6,7 +6,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { MomentHeroView } from "@/components/MomentHeroCard";
-import { LeafChestStrip } from "@/components/LeafChestStrip";
+import { ChestArt, LeafChestStrip } from "@/components/LeafChestStrip";
 import { LEAF_FINE_PRINT, type LeafPublic } from "@/lib/leaf-chest";
 import { NavIcon } from "@/components/NavIcons";
 import { buildMomentHero } from "@/lib/moment-hero";
@@ -79,6 +79,21 @@ function chestPreview(kind: string | null): LeafPublic {
     slots: [on, on, { state: "wait", label: "" }],
   };
 }
+
+const SAMPLE_REWARD = {
+  key: "sticker_sprout",
+  title: "Росток",
+  description: "Тихое начало дня",
+  rarityLabel: "Редкий",
+  look: "rare" as const,
+};
+
+const RARITY_GALLERY = [
+  { look: "common" as const, label: "Обычный" },
+  { look: "rare" as const, label: "Редкий" },
+  { look: "epic" as const, label: "Эпический" },
+  { look: "gold" as const, label: "Легендарный" },
+];
 
 const ICON = {
   width: 20,
@@ -191,7 +206,17 @@ export function TodayHeroPreview() {
               ideasEmpty={ideasEmpty}
             />
           ) : null}
-          {params.get("chest") ? (
+          {params.get("chest") === "gallery" ? (
+            <section className="leaf-gallery" aria-label="Редкости сундука">
+              {RARITY_GALLERY.map((item) => (
+                <article key={item.look} className={`leaf-gallery-card leaf-chest-frame--${item.look}`}>
+                  <ChestArt look={item.look} />
+                  <b>{item.label}</b>
+                </article>
+              ))}
+            </section>
+          ) : null}
+          {params.get("chest") && params.get("chest") !== "gallery" ? (
             <>
               <LeafChestStrip
                 selectedDate={FIXTURE_DATE}
@@ -199,6 +224,11 @@ export function TodayHeroPreview() {
                 refreshKey={0}
                 fixture={chestPreview(params.get("chest"))}
                 initialSheet={params.get("chest") === "sheet"}
+                previewReward={
+                  params.get("chest") === "play" || params.get("chest") === "reward" ? SAMPLE_REWARD : null
+                }
+                previewRevealed={params.get("chest") === "reward"}
+                previewMotion={params.get("chest") === "play" ? "full" : "auto"}
               />
               <div className="ration-day-feed ration-meal-feed">
                 <article className="meal-card">

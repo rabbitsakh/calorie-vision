@@ -1,13 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { openChest } from "@/lib/chest-client";
+import { playCelebrationChime } from "@/lib/celebration-chime";
 import type { LeafPublic, LeafRarity } from "@/lib/leaf-chest";
+import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import { lootGlyph } from "@/lib/rewards";
 import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
 import { isSoftCelebrationsMutedToday } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
+
+/** Visual only. `epic` is not granted by the server. */
+export type ChestLook = LeafRarity | "epic";
+
+const OPEN_MS = 2100;
+const OPEN_REDUCED_MS = 480;
 
 type LeafChestStripProps = {
   selectedDate: string;
@@ -16,14 +25,28 @@ type LeafChestStripProps = {
   /** Screenshot stand only. The ration page never passes this. */
   fixture?: LeafPublic;
   initialSheet?: boolean;
+  previewReward?: OpenedReward | null;
+  previewRevealed?: boolean;
+  /** Screenshot stand: force the full open or the reduced one. */
+  previewMotion?: "auto" | "full" | "reduce";
 };
 
 type OpenedReward = {
+  key?: string;
   title: string;
   description: string;
   rarityLabel: string;
-  look: LeafRarity;
+  look: ChestLook;
 };
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function playChestFeedback(reduced: boolean) {
+  if (isGamificationQuiet() || isSoftCelebrationsMutedToday(toDateKey(new Date()))) return;
+  playCelebrationChime(reduced ? "soft" : "chest");
+}
 
 function LeafMark({ filled }: { filled: boolean }) {
   return (
@@ -53,26 +76,38 @@ function LeafMark({ filled }: { filled: boolean }) {
   );
 }
 
-function ChestArt({ look }: { look: LeafRarity }) {
+export function ChestArt({ look }: { look: ChestLook }) {
   return (
-    <svg className={`leaf-chest-svg leaf-chest-svg--${look}`} viewBox="0 0 72 64" aria-hidden="true">
-      <ellipse className="leaf-chest-shadow" cx="34" cy="60" rx="22" ry="3.2" />
-      <path className="leaf-chest-side" d="M50 26.2 63 21.6V49.2L50 54Z" />
+    <svg className={`leaf-chest-svg leaf-chest-svg--${look}`} viewBox="0 0 88 80" aria-hidden="true">
+      <ellipse className="leaf-chest-shadow" cx="42" cy="74" rx="28" ry="4" />
+      <path className="leaf-chest-side" d="M62 34 78 28v32L62 66Z" />
+      <path className="leaf-chest-side-edge" d="M62 34 78 28 73 22 57 27.2Z" />
       <g className="leaf-chest-lid">
-        <path className="leaf-chest-lid-top" d="M8 26.2 46 20.2 58 16.4 16 21.6Z" />
-        <path className="leaf-chest-lid-front" d="M8 26.2h42v7.4c0 1.2-1 2.2-2.2 2.2H10.2A2.2 2.2 0 0 1 8 33.6Z" />
-        <path className="leaf-chest-band" d="M20 25.4 22.4 24.6V35.6L20 35.8Z" />
-        <path className="leaf-chest-band" d="M38 23.6 40.4 22.8V35.6L38 35.8Z" />
-        <path className="leaf-chest-gem" d="M29.5 14.6 34.2 18.4 29.5 22.2 24.8 18.4Z" />
+        <path className="leaf-chest-lid-top" d="M10 34 57 27.2 73 22 22 28Z" />
+        <path className="leaf-chest-lid-front" d="M10 34h52v9.2c0 1.5-1.2 2.7-2.7 2.7H12.7A2.7 2.7 0 0 1 10 43.2Z" />
+        <path className="leaf-chest-band" d="M24 32.2h3.4V46H24Z" />
+        <path className="leaf-chest-band" d="M47 30.4h3.4V46H47Z" />
+        <path className="leaf-chest-gem" d="M36 16.8 43 22.2 36 27.6 29 22.2Z" />
+        <circle className="leaf-chest-rivet" cx="16" cy="39" r="1.35" />
+        <circle className="leaf-chest-rivet" cx="56" cy="39" r="1.35" />
       </g>
-      <path className="leaf-chest-body" d="M8 33.2h42V52c0 2.2-1.8 4-4 4H12c-2.2 0-4-1.8-4-4Z" />
-      <path className="leaf-chest-band" d="M20 33.2h3.4V56H20Z" />
-      <path className="leaf-chest-band" d="M38 33.2h3.4V56H38Z" />
-      <rect className="leaf-chest-lock" x="24.2" y="38" width="12" height="13.5" rx="2.2" />
-      <circle className="leaf-chest-keyhole" cx="30.2" cy="43.2" r="1.7" />
-      <path className="leaf-chest-keyhole" d="M30.2 44.8v3.1" />
+      <path className="leaf-chest-body" d="M10 43.2h52V66c0 2.6-2.1 4.7-4.7 4.7H14.7C12.1 70.7 10 68.6 10 66Z" />
+      <path className="leaf-chest-plank" d="M16 54h40" />
+      <path className="leaf-chest-band" d="M24 43.2h3.6V70.7H24Z" />
+      <path className="leaf-chest-band" d="M47 43.2h3.6V70.7H47Z" />
+      <rect className="leaf-chest-lock" x="31" y="49" width="14" height="16" rx="2.5" />
+      <circle className="leaf-chest-keyhole" cx="38" cy="55" r="1.8" />
+      <path className="leaf-chest-keyhole" d="M38 56.8v3.4" />
+      <circle className="leaf-chest-rivet" cx="16" cy="48" r="1.35" />
+      <circle className="leaf-chest-rivet" cx="56" cy="48" r="1.35" />
+      <circle className="leaf-chest-rivet" cx="16" cy="66" r="1.35" />
+      <circle className="leaf-chest-rivet" cx="56" cy="66" r="1.35" />
     </svg>
   );
+}
+
+function ChestFrame({ look, children }: { look: ChestLook; children: ReactNode }) {
+  return <span className={`leaf-chest-frame leaf-chest-frame--${look}`}>{children}</span>;
 }
 
 function LeafMeter({ slots, large = false }: { slots: LeafPublic["slots"]; large?: boolean }) {
@@ -93,16 +128,19 @@ export function LeafChestStrip({
   refreshKey,
   fixture,
   initialSheet = false,
+  previewReward = null,
+  previewRevealed = false,
+  previewMotion = "auto",
 }: LeafChestStripProps) {
   const [view, setView] = useState<LeafPublic | null>(fixture ?? null);
   const [sheet, setSheet] = useState(initialSheet);
   const [legacyReady, setLegacyReady] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reward, setReward] = useState<OpenedReward | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [beat, setBeat] = useState(0);
-  const [showCeremony, setShowCeremony] = useState(false);
+  const [reward, setReward] = useState<OpenedReward | null>(previewReward);
+  const [revealed, setRevealed] = useState(previewRevealed);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [showCeremony, setShowCeremony] = useState(Boolean(previewReward));
   const [mounted, setMounted] = useState(false);
 
   const reload = useCallback(async () => {
@@ -146,39 +184,36 @@ export function LeafChestStrip({
   }, []);
 
   useEffect(() => {
-    if (!showCeremony || revealed) return;
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const muted = isSoftCelebrationsMutedToday(toDateKey(new Date()));
-    if (reduce || muted) {
-      setRevealed(true);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setBeat((value) => {
-        if (value >= 3) {
-          setRevealed(true);
-          return value;
-        }
-        return value + 1;
-      });
-    }, 700);
-    return () => window.clearTimeout(timer);
-  }, [showCeremony, revealed, beat]);
-
-  const beginCeremony = (next: OpenedReward) => {
+    if (!previewReward) return;
+    setReward(previewReward);
+    setRevealed(previewRevealed);
+    setReduceMotion(
+      previewMotion === "full" ? false : previewMotion === "reduce" ? true : prefersReducedMotion(),
+    );
+    setShowCeremony(true);
     setSheet(false);
-    setBeat(0);
+  }, [previewReward, previewRevealed, previewMotion]);
+
+  useEffect(() => {
+    if (!showCeremony || revealed) return;
+    const timer = window.setTimeout(
+      () => setRevealed(true),
+      reduceMotion ? OPEN_REDUCED_MS : OPEN_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [showCeremony, revealed, reduceMotion]);
+
+  const beginCeremony = (next: OpenedReward, sound = true) => {
+    const reduced = prefersReducedMotion();
+    setReduceMotion(reduced);
+    setSheet(false);
     setRevealed(false);
     setReward(next);
     setShowCeremony(true);
+    if (sound) playChestFeedback(reduced);
   };
 
-  const revealNow = () => {
-    setBeat(3);
-    setRevealed(true);
-  };
+  const revealNow = () => setRevealed(true);
 
   const openReady = async () => {
     if (busy || !view?.ready) return;
@@ -194,7 +229,7 @@ export function LeafChestStrip({
         error?: string;
         opened?: boolean;
         view?: LeafPublic;
-        reward?: { title: string; description: string } | null;
+        reward?: { key?: string; title: string; description: string } | null;
         rarity?: LeafRarity | null;
         rarityLabel?: string | null;
       };
@@ -208,6 +243,7 @@ export function LeafChestStrip({
         title: data.reward.title,
         description: data.reward.description,
         rarityLabel: data.rarityLabel ?? "Обычный",
+        key: data.reward.key,
         look: data.rarity ?? "common",
       });
     } catch {
@@ -279,7 +315,9 @@ export function LeafChestStrip({
       <div className="leaf-sheet" role="dialog" aria-labelledby="leaf-sheet-title">
         <div className="leaf-sheet-grab" />
         <div className="leaf-sheet-hero">
-          <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+          <ChestFrame look={view.ready && view.rarity ? view.rarity : view.chestLook}>
+            <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+          </ChestFrame>
           <div>
             <h2 id="leaf-sheet-title" className="leaf-sheet-title">
               {view.ready ? "Сундук твой" : "Сундук"}
@@ -316,10 +354,27 @@ export function LeafChestStrip({
   ) : null;
 
   const ceremonyNode = showCeremony && reward ? (
-    <div className="leaf-open" role="dialog" aria-label="Открытие сундука">
+    <div
+      className={`leaf-open${revealed ? " leaf-open--done" : " leaf-open--play"}${reduceMotion ? " leaf-open--reduce" : ""}`}
+      role="dialog"
+      aria-label="Открытие сундука"
+    >
       {revealed ? (
-        <div className="leaf-open-card">
+        <div className={`leaf-open-card leaf-open-card--${reward.look}`}>
+          {reduceMotion ? null : (
+            <span className="leaf-confetti" aria-hidden="true">
+              {Array.from({ length: 14 }, (_, index) => (
+                <i key={index} />
+              ))}
+            </span>
+          )}
+          <ChestFrame look={reward.look}>
+            <ChestArt look={reward.look} />
+          </ChestFrame>
           <p className="leaf-open-rarity">{reward.rarityLabel}</p>
+          <p className="leaf-open-glyph" aria-hidden="true">
+            {lootGlyph(reward.key)}
+          </p>
           <h2>{reward.title}</h2>
           <p>{reward.description}</p>
           <button
@@ -332,14 +387,19 @@ export function LeafChestStrip({
               void reload();
             }}
           >
-            Хорошо
+            Забрать
           </button>
         </div>
       ) : (
         <>
-          <div className={`leaf-stage leaf-stage--${reward.look} leaf-stage--beat-${beat}`}>
+          <span className="leaf-rays" aria-hidden="true" />
+          <span className="leaf-flash" aria-hidden="true" />
+          <div className={`leaf-stage leaf-stage--${reward.look}`}>
             <ChestArt look={reward.look} />
           </div>
+          <p className="leaf-loot-fly">
+            <span aria-hidden="true">{lootGlyph(reward.key)}</span> {reward.title}
+          </p>
           <button type="button" className="leaf-open-skip" onClick={revealNow}>
             Хватит, покажи подарок
           </button>
@@ -360,7 +420,9 @@ export function LeafChestStrip({
           setSheet(true);
         }}
       >
-        <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+        <ChestFrame look={view.ready && view.rarity ? view.rarity : view.chestLook}>
+          <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+        </ChestFrame>
         <span className="leaf-strip-copy">
           <span className="leaf-strip-head">
             <span className="leaf-strip-title">Сундук</span>
