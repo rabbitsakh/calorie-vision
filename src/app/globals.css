@@ -12574,12 +12574,77 @@ html:has(.onboarding-screen) .bottom-composer {
   width: 220px;
   height: 196px;
 }
-.leaf-open--play .leaf-stage {
-  animation: leaf-chest-shake 0.48s ease-in-out 1;
+.leaf-chest-bob {
+  display: block;
+  transform-origin: 50% 78%;
+  animation: leaf-idle 2.8s ease-in-out infinite;
 }
-.leaf-open--play .leaf-chest-lid {
-  animation: leaf-lid-open 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.48s forwards;
+.leaf-strip .leaf-chest-svg {
+  transform-origin: 50% 80%;
+  animation: leaf-idle 2.8s ease-in-out infinite;
 }
+.leaf-open--t1 .leaf-chest-bob { animation: leaf-shake-1 0.55s ease-in-out; }
+.leaf-open--t2 .leaf-chest-bob { animation: leaf-shake-2 0.55s ease-in-out; }
+.leaf-open--t3 .leaf-chest-lid {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: leaf-lid-open 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.leaf-seam {
+  fill: none;
+  stroke: #fff6c8;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px #ffe08a);
+}
+.leaf-open--t1 .leaf-seam { opacity: 0.55; }
+.leaf-open--t2 .leaf-seam { opacity: 1; }
+.leaf-open--common { --chest-glow: #d7a15a; }
+.leaf-open--rare { --chest-glow: #4c8fe0; }
+.leaf-open--epic { --chest-glow: #8b5cf6; }
+.leaf-open--gold { --chest-glow: #ffd56a; }
+.leaf-open--t1 .leaf-stage,
+.leaf-open--t2 .leaf-stage,
+.leaf-open--t3 .leaf-stage {
+  filter: drop-shadow(0 0 16px var(--chest-glow));
+}
+.leaf-stage {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.leaf-tap-hint {
+  position: relative;
+  z-index: 4;
+  margin: 0;
+  color: #fff8ea;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.leaf-burst {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.leaf-burst i {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--chest-glow, #ffd56a);
+  animation: leaf-spark 1.05s ease-out forwards;
+}
+.leaf-burst i.is-coin {
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 35% 35%, #fff6c8, #e2b84a 55%, #a86a10);
+}
+.leaf-burst i:nth-child(odd) { animation-delay: 0.05s; }
 .leaf-rays,
 .leaf-flash {
   position: absolute;
@@ -12587,20 +12652,22 @@ html:has(.onboarding-screen) .bottom-composer {
 }
 .leaf-rays {
   z-index: 1;
-  width: 320px;
-  height: 320px;
+  width: 340px;
+  height: 340px;
   border-radius: 50%;
   opacity: 0;
-  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 120, 0.0) 0 14deg, rgba(255, 214, 120, 0.38) 14deg 18deg);
-  animation: leaf-rays-in 0.9s ease-out 0.9s forwards;
+  background: repeating-conic-gradient(from 0deg, transparent 0 12deg, color-mix(in srgb, var(--chest-glow, #ffd56a) 55%, transparent) 12deg 16deg);
+}
+.leaf-open--t3 .leaf-rays {
+  animation: leaf-rays-in 0.55s ease-out forwards, leaf-rays-spin 6s linear 0.2s infinite;
 }
 .leaf-flash {
-  z-index: 3;
+  z-index: 5;
   inset: 0;
-  background: radial-gradient(circle at 50% 46%, rgba(255, 244, 214, 0.72), transparent 42%);
+  background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--chest-glow, #fff) 70%, white), transparent 46%);
   opacity: 0;
-  animation: leaf-flash 0.55s ease-out 1.05s forwards;
 }
+.leaf-open--t3 .leaf-flash { animation: leaf-flash 0.55s ease-out 0.12s forwards; }
 .leaf-loot-fly {
   position: relative;
   z-index: 4;
@@ -12643,21 +12710,40 @@ html:has(.onboarding-screen) .bottom-composer {
 .leaf-open-card h2 { margin: 4px 0 8px; font-size: 1.75rem; line-height: 1.15; color: var(--foreground); }
 .leaf-open-card > p { margin: 0; color: var(--muted-strong); }
 .leaf-open-glyph {
-  margin: 8px 0 0;
-  font-size: 2.4rem;
+  margin: 6px 0 0;
+  font-size: 3.4rem;
   line-height: 1;
 }
+.leaf-open-card--common { border-color: #c4a574; box-shadow: 0 0 28px rgba(196, 165, 116, 0.4); }
+.leaf-open-card--rare { border-color: #4c8fe0; box-shadow: 0 0 28px rgba(76, 143, 224, 0.45); }
+.leaf-open-card--epic { border-color: #8b5cf6; box-shadow: 0 0 28px rgba(139, 92, 246, 0.5); }
+.leaf-open-card--gold { border-color: #ffd56a; box-shadow: 0 0 32px rgba(255, 213, 106, 0.55); }
+.leaf-open--done .leaf-open-card { animation: leaf-card-flip 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.leaf-open-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.42) 48%, transparent 64%);
+  transform: translateX(-130%);
+  animation: leaf-shine 1.15s ease-in-out 0.35s;
+  pointer-events: none;
+  z-index: 3;
+}
 .leaf-open-rarity {
-  margin-top: 12px;
-  font-size: 0.8125rem;
+  margin-top: 8px;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.15rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent-ink);
 }
+.leaf-claim { animation: leaf-claim 1.25s ease-in-out infinite; }
 .leaf-open-card .leaf-chest-frame { margin: 0 auto; }
 .leaf-open-card .leaf-sheet-open { margin-top: 16px; }
-.leaf-confetti { position: absolute; inset: 0; pointer-events: none; }
+.leaf-open-card > * { position: relative; z-index: 1; }
+.leaf-confetti { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .leaf-confetti i {
   position: absolute;
   top: -12px;
@@ -12670,6 +12756,55 @@ html:has(.onboarding-screen) .bottom-composer {
 .leaf-confetti i:nth-child(4n + 1) { left: 32%; background: #e8b23a; animation-delay: 0.08s; }
 .leaf-confetti i:nth-child(4n + 2) { left: 58%; background: #f6e7c4; animation-delay: 0.04s; }
 .leaf-confetti i:nth-child(4n + 3) { left: 78%; background: #3ec6e0; animation-delay: 0.12s; }
+@keyframes leaf-idle {
+  0%, 100% { transform: rotate(-1.6deg); }
+  50% { transform: rotate(1.6deg); }
+}
+@keyframes leaf-shake-1 {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px) rotate(-2deg); }
+  75% { transform: translateX(6px) rotate(2deg); }
+}
+@keyframes leaf-shake-2 {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px) rotate(-3deg); }
+  40% { transform: translateX(10px) rotate(3deg); }
+  60% { transform: translateX(-7px) rotate(-2deg); }
+  80% { transform: translateX(7px) rotate(2deg); }
+}
+@keyframes leaf-spark {
+  to { transform: translate(calc((var(--n, 1) - 8) * 18px), calc(-40px - (var(--n, 1) * 8px))) scale(0.4); opacity: 0; }
+}
+.leaf-burst i:nth-child(1) { --n: 1; }
+.leaf-burst i:nth-child(2) { --n: 3; }
+.leaf-burst i:nth-child(3) { --n: 5; }
+.leaf-burst i:nth-child(4) { --n: 7; }
+.leaf-burst i:nth-child(5) { --n: 9; }
+.leaf-burst i:nth-child(6) { --n: 11; }
+.leaf-burst i:nth-child(7) { --n: 13; }
+.leaf-burst i:nth-child(8) { --n: 15; }
+.leaf-burst i:nth-child(9) { --n: 2; }
+.leaf-burst i:nth-child(10) { --n: 4; }
+.leaf-burst i:nth-child(11) { --n: 6; }
+.leaf-burst i:nth-child(12) { --n: 8; }
+.leaf-burst i:nth-child(13) { --n: 10; }
+.leaf-burst i:nth-child(14) { --n: 12; }
+.leaf-burst i:nth-child(15) { --n: 14; }
+.leaf-burst i:nth-child(16) { --n: 16; }
+@keyframes leaf-rays-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes leaf-card-flip {
+  from { opacity: 0; transform: translateY(48px) rotateY(78deg) scale(0.72); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes leaf-shine {
+  to { transform: translateX(130%); }
+}
+@keyframes leaf-claim {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
+}
 @keyframes leaf-chest-shake {
   0%, 100% { transform: translateX(0) rotate(0); }
   18% { transform: translateX(-4px) rotate(-1.6deg); }
@@ -12706,7 +12841,13 @@ html:has(.onboarding-screen) .bottom-composer {
   .leaf-rays,
   .leaf-flash,
   .leaf-loot-fly,
-  .leaf-confetti i { animation: none; }
+  .leaf-confetti i,
+  .leaf-burst i,
+  .leaf-chest-bob,
+  .leaf-strip .leaf-chest-svg,
+  .leaf-open--done .leaf-open-card,
+  .leaf-open-card::after,
+  .leaf-claim { animation: none; }
   .leaf-strip--ready {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 55%, transparent), var(--shadow-card);
   }

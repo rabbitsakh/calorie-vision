@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readChestSoundPref, setChestSoundEnabled } from "@/lib/chest-sfx";
 import { isGamificationQuiet, setGamificationQuiet } from "@/lib/gamification-quiet";
 
 /**
@@ -9,10 +10,12 @@ import { isGamificationQuiet, setGamificationQuiet } from "@/lib/gamification-qu
  */
 export function GamificationQuietToggle() {
   const [quiet, setQuiet] = useState(false);
+  const [chestSound, setChestSound] = useState(true);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setQuiet(isGamificationQuiet());
+    setChestSound(readChestSoundPref());
     setReady(true);
   }, []);
 
@@ -40,6 +43,25 @@ export function GamificationQuietToggle() {
           <span className="block text-sm font-medium text-[var(--foreground)]">Показывать празднования</span>
           <span className="mt-0.5 block text-xs text-[var(--muted)]">
             Полноэкранные сцены и звуки при вехах. Награды открываются в любом режиме.
+          </span>
+        </span>
+      </label>
+      <label className="mt-4 flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
+          checked={chestSound}
+          disabled={!ready}
+          onChange={(event) => {
+            const next = event.target.checked;
+            setChestSound(next);
+            setChestSoundEnabled(next);
+          }}
+        />
+        <span>
+          <span className="block text-sm font-medium text-[var(--foreground)]">Звук сундука</span>
+          <span className="mt-0.5 block text-xs text-[var(--muted)]">
+            Тап, открытие и награда. Включён отдельно от остальных празднований.
           </span>
         </span>
       </label>

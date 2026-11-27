@@ -80,12 +80,20 @@ function chestPreview(kind: string | null): LeafPublic {
   };
 }
 
-const SAMPLE_REWARD = {
+const COMMON_REWARD = {
   key: "sticker_sprout",
   title: "Росток",
   description: "Тихое начало дня",
-  rarityLabel: "Редкий",
-  look: "rare" as const,
+  rarityLabel: "Обычный",
+  look: "common" as const,
+};
+
+const LEGEND_REWARD = {
+  key: "cheer_festive",
+  title: "Праздничный настрой",
+  description: "Сегодня можно улыбнуться шире",
+  rarityLabel: "Легендарный",
+  look: "gold" as const,
 };
 
 const RARITY_GALLERY = [
@@ -225,10 +233,33 @@ export function TodayHeroPreview() {
                 fixture={chestPreview(params.get("chest"))}
                 initialSheet={params.get("chest") === "sheet"}
                 previewReward={
-                  params.get("chest") === "play" || params.get("chest") === "reward" ? SAMPLE_REWARD : null
+                  params.get("chest") === "legend"
+                    ? LEGEND_REWARD
+                    : params.get("chest") === "reward"
+                      ? COMMON_REWARD
+                      : params.get("chest") === "play" ||
+                          params.get("chest") === "tap" ||
+                          params.get("chest") === "burst"
+                        ? COMMON_REWARD
+                        : null
                 }
-                previewRevealed={params.get("chest") === "reward"}
-                previewMotion={params.get("chest") === "play" ? "full" : "auto"}
+                previewRevealed={params.get("chest") === "reward" || params.get("chest") === "legend"}
+                previewMotion={
+                  params.get("chest") === "play" ||
+                  params.get("chest") === "tap" ||
+                  params.get("chest") === "burst"
+                    ? "full"
+                    : "auto"
+                }
+                previewPhase={
+                  params.get("chest") === "play"
+                    ? "play"
+                    : params.get("chest") === "burst"
+                      ? "burst"
+                      : params.get("chest") === "reward" || params.get("chest") === "legend"
+                        ? "card"
+                        : "ask"
+                }
               />
               <div className="ration-day-feed ration-meal-feed">
                 <article className="meal-card">
