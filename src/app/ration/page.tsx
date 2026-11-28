@@ -245,10 +245,12 @@ function RationBody({
   }, [bump]);
 
   useEffect(() => {
-    const onWater = () => bump();
+    const onWater = () => {
+      void day.refresh(true);
+    };
     window.addEventListener(WATER_LOGGED_EVENT, onWater);
     return () => window.removeEventListener(WATER_LOGGED_EVENT, onWater);
-  }, [bump]);
+  }, [day.refresh]);
 
   useEffect(() => {
     const total = day.data?.streak?.daysLoggedTotal;
@@ -404,7 +406,7 @@ function RationBody({
           <FastingWindowBanner isToday={date === today} />
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}
-          <WaterTracker selectedDate={date} onChanged={bump} compact />
+          <WaterTracker selectedDate={date} compact />
 
           <CelebrationOrchestrator>
           {/* Interrupt-only: at-risk streak (quietHide / self-gated). */}

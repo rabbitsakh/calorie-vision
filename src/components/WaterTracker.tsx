@@ -91,11 +91,12 @@ export function WaterTracker({
 
   useEffect(() => {
     function onLogged() {
+      if (day?.date === selectedDate) return;
       void load();
     }
     window.addEventListener(WATER_LOGGED_EVENT, onLogged);
     return () => window.removeEventListener(WATER_LOGGED_EVENT, onLogged);
-  }, [load]);
+  }, [load, day, selectedDate]);
 
   function handleHide() {
     hidePanelToday(PANEL_ID, selectedDate);

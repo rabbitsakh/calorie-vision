@@ -12311,7 +12311,7 @@ html:has(.onboarding-screen) .bottom-composer {
 }
 .leaf-strip--ready {
   border-color: color-mix(in srgb, var(--accent-streak) 70%, var(--border-quiet));
-  animation: leaf-card-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 55%, transparent), var(--shadow-card);
 }
 .leaf-strip-copy {
   min-width: 0;
@@ -12446,21 +12446,10 @@ html:has(.onboarding-screen) .bottom-composer {
   transform-box: fill-box;
   transform-origin: 50% 100%;
 }
-.leaf-strip--ready .leaf-chest-svg {
-  animation: leaf-ready-glow 1.8s ease-in-out infinite;
-}
 @keyframes leaf-slot-pop {
   0% { transform: scale(0.86); }
   62% { transform: scale(1.06); }
   100% { transform: scale(1); }
-}
-@keyframes leaf-card-pulse {
-  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 35%, transparent), var(--shadow-card); }
-  50% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-streak) 70%, transparent), 0 0 18px color-mix(in srgb, var(--accent-streak) 45%, transparent); }
-}
-@keyframes leaf-ready-glow {
-  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
-  50% { filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent-streak) 80%, white)); }
 }
 .leaf-sheet-root {
   position: fixed;
@@ -12581,7 +12570,6 @@ html:has(.onboarding-screen) .bottom-composer {
 }
 .leaf-strip .leaf-chest-svg {
   transform-origin: 50% 80%;
-  animation: leaf-idle 2.8s ease-in-out infinite;
 }
 .leaf-open--t1 .leaf-chest-bob { animation: leaf-shake-1 0.55s ease-in-out; }
 .leaf-open--t2 .leaf-chest-bob { animation: leaf-shake-2 0.55s ease-in-out; }
@@ -12849,12 +12837,6 @@ html:has(.onboarding-screen) .bottom-composer {
   .leaf-open-card::after,
   .leaf-claim,
   .collection-leaf-gain { animation: none; }
-  .leaf-strip--ready {
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 55%, transparent), var(--shadow-card);
-  }
-  .leaf-strip--ready .leaf-chest-svg {
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent-streak) 75%, white));
-  }
 }
 @media (max-width: 360px) {
   .leaf-strip {
