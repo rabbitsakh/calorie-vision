@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Сегодня — сундук готов</title>
+  <link rel="stylesheet" href="../screens.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сегодня</h1></header>
+    <p class="date">воскресенье, 22 ноября</p>
+    <div class="scroll">
+      <section class="chest-dock ready">
+        <div class="dock-main">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+            <rect x="6" y="14" width="24" height="16" rx="3" fill="#0d7377" stroke="#134e4a" stroke-width="1.4"/>
+            <path d="M6 18 H30" stroke="#134e4a" stroke-width="1.4" opacity="0.55"/>
+            <rect x="8" y="8" width="20" height="8" rx="2" fill="#14b8a6" stroke="#134e4a" stroke-width="1.3"/>
+            <circle cx="18" cy="20" r="2.2" fill="#fde68a"/>
+          </svg>
+          <div style="flex:1">
+            <p class="dock-label">Сундук готов · ещё 1</p>
+            <p class="dock-detail">Открой — награда в коллекцию</p>
+            <p class="dock-meta">Ещё в очереди: 1</p>
+            <p class="dock-meta">мета 4/5</p>
+          </div>
+          <button class="dock-cta" type="button">Открыть</button>
+        </div>
+      </section>
+      <section class="more">
+        <b>Ещё на сегодня</b>
+        <span>Привычки, план, итог, установка</span>
+        <div class="quests">
+          <div style="display:flex;justify-content:space-between">
+            <b style="font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#5a635c">На сегодня</b>
+            <b>2/2</b>
+          </div>
+          <div class="row done"><span>✓ Записать приём</span><span>Есть запись</span></div>
+          <div class="row done"><span>✓ Дойти по воде</span><span>Норма воды</span></div>
+          <div class="row"><span>○ Тренировка <small>в сундук</small></span></div>
+          <p class="hint">Ещё 2 лёгких дня до сундука</p>
+        </div>
+      </section>
+    </div>
+    <nav class="tabs">
+      <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Сегодня</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 16c2-4 4-8 6-8s2 6 4 8"/></svg>Зал</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16l5-5 4 3 7-8"/></svg>Прогресс</div>
+      <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3"/></svg>Я</div>
+    </nav>
+  </div>
+</body>
+</html>

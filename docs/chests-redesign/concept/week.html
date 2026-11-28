@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Недельная полка</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Неделя</h1></header>
+    <p class="date">пн 16 — вс 22 ноября</p>
+    <div class="scroll">
+      <section class="pantry hot">
+        <p class="kicker">Почти подарок недели</p>
+        <h2>Ещё один день на неделе</h2>
+        <p class="rule">Пять дней с едой или залом — и к воскресенью сундук. Два дня можно отдохнуть, листки за три дня при этом не сгорают.</p>
+        <div class="week-days" aria-label="Дни недели">
+          <span class="lf on"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>пн</small></span>
+          <span class="lf on"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>вт</small></span>
+          <span class="lf"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>ср</small></span>
+          <span class="lf on"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>чт</small></span>
+          <span class="lf on"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>пт</small></span>
+          <span class="lf"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>сб</small></span>
+          <span class="lf wait"><svg width="18" height="18" viewBox="0 0 24 24"><path class="blade" d="M12 2c4 6 8 8 8 13a8 8 0 0 1-16 0c0-5 4-7 8-13z"/></svg><small>вс</small></span>
+        </div>
+        <div class="todo">
+          <b>Сегодня как раз тот день</b>
+          <span>Запиши еду или зайди в зал — и воскресный сундук твой. Если и то и другое, внутри будет золотая вещь.</span>
+        </div>
+        <div class="chest-row">
+          <span class="mini-chest rare" aria-hidden="true"><i class="lid"></i><i class="box"></i><i class="gem"></i></span>
+          <p>В пятницу ты и поел, и был в зале. Повторишь сегодня — сундук будет золотой.</p>
+        </div>
+      </section>
+    </div>
+    <nav class="tabs">
+      <div class="tab">Сегодня</div><div class="tab">Зал</div><div class="tab on">Прогресс</div><div class="tab">Я</div>
+    </nav>
+  </div>
+  <script src="chest.js"></script>
+</body>
+</html>

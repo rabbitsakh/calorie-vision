@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Три редкости сундука</title>
+  <link rel="stylesheet" href="../screens.css" />
+  <link rel="stylesheet" href="rich.css" />
+</head>
+<body>
+  <div class="phone">
+    <header class="top"><h1>Сундуки</h1></header>
+    <p class="date">один сундук, три настроения</p>
+    <div class="scroll" style="gap:14px">
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="common" data-pose="shut" class="lg"></div>
+        <div>
+          <p class="kicker">Простой</p>
+          <h2 style="font-size:20px">Деревянный</h2>
+          <p class="rule">Обычный день: поел или сходил в зал. Тёплый, без камня.</p>
+        </div>
+      </section>
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="rare" data-pose="shut" class="lg"></div>
+        <div>
+          <p class="kicker">Редкий</p>
+          <h2 style="font-size:20px">С камнем</h2>
+          <p class="rule">Если в один день и еда, и зал — внутри редкая вещь.</p>
+        </div>
+      </section>
+      <section class="pantry hot" style="display:flex;align-items:center;gap:8px;min-height:132px">
+        <div data-chest="festive" data-pose="open" class="lg"></div>
+        <div>
+          <p class="kicker" style="background:#9a3412">Золотой</p>
+          <h2 style="font-size:20px">Для особых дней</h2>
+          <p class="rule">Неделя, где ты не раз и ел, и был в зале, или финал сезона.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script src="chest.js"></script>
+</body>
+</html>
