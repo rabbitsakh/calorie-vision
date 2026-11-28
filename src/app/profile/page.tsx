@@ -10,6 +10,7 @@ import { FastingWindowSettings } from "@/components/FastingWindowSettings";
 import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
 import { RewardsPanel } from "@/components/RewardsPanel";
+import { withBasePath } from "@/lib/paths";
 import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -151,6 +152,9 @@ export default function ProfilePage() {
             forceOpen={hash === "#rewards"}
           >
             <div className="flex flex-col gap-4">
+              <Link href={withBasePath("/collection")} className="text-sm font-semibold text-[var(--accent-ink)]">
+                Открыть коллекцию наборов
+              </Link>
               <BadgesPanel />
               <RewardsPanel />
             </div>

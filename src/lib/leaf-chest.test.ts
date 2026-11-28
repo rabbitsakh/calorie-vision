@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   addSpark,
-  applyComboShift,
   awardSpareLeaf,
   baseRarity,
   copyHasBannedWord,
@@ -12,6 +11,7 @@ import {
   mealCountsAsPlate,
   pickCosmeticForChest,
   resolveRarity,
+  rolledTier,
   sealReadyChests,
   sessionCountsAsGym,
   setCountsAsWorkout,
@@ -31,27 +31,30 @@ function withSparks(dates: LeafSpark[]): LeafWorld {
 }
 
 describe("шансы сундука", () => {
-  test("база 70/25/5 на бросках 0..99", () => {
-    const counts = { common: 0, rare: 0, gold: 0 };
+  test("обычный день 70/18/7/5", () => {
+    const counts = { common: 0, rare: 0, epic: 0, gold: 0 };
     for (let roll = 0; roll < 100; roll += 1) counts[baseRarity(roll)] += 1;
-    assert.deepEqual(counts, { common: 70, rare: 25, gold: 5 });
+    assert.deepEqual(counts, { common: 70, rare: 18, epic: 7, gold: 5 });
   });
 
-  test("еда и зал в один день дают 0/70/30", () => {
-    const counts = { common: 0, rare: 0, gold: 0 };
-    for (let roll = 0; roll < 100; roll += 1) {
-      counts[applyComboShift(baseRarity(roll), true)] += 1;
-    }
-    assert.deepEqual(counts, { common: 0, rare: 70, gold: 30 });
+  test("еда и зал в один день дают 0/55/25/20", () => {
+    const counts = { common: 0, rare: 0, epic: 0, gold: 0 };
+    for (let roll = 0; roll < 100; roll += 1) counts[rolledTier(roll, true)] += 1;
+    assert.deepEqual(counts, { common: 0, rare: 55, epic: 25, gold: 20 });
   });
 
   test("границы броска", () => {
     assert.equal(baseRarity(0), "common");
     assert.equal(baseRarity(69), "common");
     assert.equal(baseRarity(70), "rare");
-    assert.equal(baseRarity(94), "rare");
+    assert.equal(baseRarity(87), "rare");
+    assert.equal(baseRarity(88), "epic");
+    assert.equal(baseRarity(94), "epic");
     assert.equal(baseRarity(95), "gold");
-    assert.equal(baseRarity(99), "gold");
+    assert.equal(rolledTier(54, true), "rare");
+    assert.equal(rolledTier(55, true), "epic");
+    assert.equal(rolledTier(79, true), "epic");
+    assert.equal(rolledTier(80, true), "gold");
   });
 });
 

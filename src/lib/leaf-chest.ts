@@ -14,13 +14,17 @@ export const MIN_WORK_SEC = 5 * 60;
 export const MIN_WORK_KM = 0.5;
 export const MIN_SESSION_MS = 4 * 60 * 1000;
 
-export type LeafRarity = "common" | "rare" | "gold";
+export type LeafRarity = "common" | "rare" | "epic" | "gold";
 
 export const LEAF_RARITY_LABEL: Record<LeafRarity, string> = {
   common: "Обычный",
   rare: "Редкий",
-  gold: "Золотой",
+  epic: "Эпический",
+  gold: "Легендарный",
 };
+
+export const CHEST_ODDS_LINE =
+  "Обычный день: 70% обычный, 18% редкий, 7% эпический, 5% легендарный. Если в один день и еда, и зал: 55% редкий, 25% эпический, 20% легендарный.";
 
 export const LEAF_FINE_PRINT =
   "Еда от 80 ккал. Тренировка — от 5 повторов, 5 минут или полкилометра, и это не разминка. Пропустил — ничего не сгорает. Купить день нельзя.";
@@ -97,16 +101,28 @@ export function copyHasBannedWord(text: string): string | null {
 }
 
 export function baseRarity(roll: number): LeafRarity {
+  return rolledTier(roll, false);
+}
+
+/** Final tier. Combo is its own table, not a one-step shift of the base roll. */
+export function rolledTier(roll: number, combo: boolean): LeafRarity {
   const n = Math.max(0, Math.min(99, Math.floor(roll)));
-  if (n < 70) return "common";
-  if (n < 95) return "rare";
+  if (!combo) {
+    if (n < 70) return "common";
+    if (n < 88) return "rare";
+    if (n < 95) return "epic";
+    return "gold";
+  }
+  if (n < 55) return "rare";
+  if (n < 80) return "epic";
   return "gold";
 }
 
 export function applyComboShift(rarity: LeafRarity, combo: boolean): LeafRarity {
   if (!combo) return rarity;
   if (rarity === "common") return "rare";
-  if (rarity === "rare") return "gold";
+  if (rarity === "rare") return "epic";
+  if (rarity === "epic") return "gold";
   return "gold";
 }
 
@@ -128,8 +144,8 @@ export function nextPityCounters(
   sinceGold: number,
 ): { commonStreak: number; sinceGold: number } {
   if (rarity === "gold") return { commonStreak: 0, sinceGold: 0 };
-  if (rarity === "rare") return { commonStreak: 0, sinceGold: sinceGold + 1 };
-  return { commonStreak: commonStreak + 1, sinceGold: sinceGold + 1 };
+  if (rarity === "common") return { commonStreak: commonStreak + 1, sinceGold: sinceGold + 1 };
+  return { commonStreak: 0, sinceGold: sinceGold + 1 };
 }
 
 export function resolveRarity(input: {
@@ -138,7 +154,7 @@ export function resolveRarity(input: {
   commonStreak: number;
   sinceGold: number;
 }): { rarity: LeafRarity; commonStreak: number; sinceGold: number } {
-  const shifted = applyComboShift(baseRarity(input.roll), input.combo);
+  const shifted = rolledTier(input.roll, input.combo);
   const rarity = applyPityRaise(shifted, input.commonStreak, input.sinceGold);
   const counters = nextPityCounters(rarity, input.commonStreak, input.sinceGold);
   return { rarity, ...counters };
@@ -407,6 +423,7 @@ export function leafRewardSourceKey(seq: number): string {
 
 function catalogRarity(rarity: LeafRarity): RewardRarity {
   if (rarity === "gold") return "festive";
+  if (rarity === "epic") return "rare";
   return rarity;
 }
 

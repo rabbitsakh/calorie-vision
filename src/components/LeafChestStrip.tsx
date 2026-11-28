@@ -1,13 +1,81 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { openChest } from "@/lib/chest-client";
-import type { LeafPublic, LeafRarity } from "@/lib/leaf-chest";
+import { playChestCue, stopChestAudio } from "@/lib/chest-sfx";
+import { CHEST_ODDS_LINE, type LeafPublic, type LeafRarity } from "@/lib/leaf-chest";
+import { lootGlyph } from "@/lib/rewards";
+import { CurrencyLeaf } from "@/components/CurrencyLeaf";
+import { leavesCount } from "@/lib/russian-text";
 import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
-import { isSoftCelebrationsMutedToday } from "@/lib/soft-celebration";
-import { toDateKey } from "@/lib/dates";
+
+/** Visual only. `epic` is not granted by the server. */
+export type ChestLook = LeafRarity | "epic";
+
+const TAP_LOCK_MS = 720;
+const OPEN_BURST_MS = 1900;
+const OPEN_REDUCED_MS = 480;
+
+type ChestPaint = {
+  bodyA: string;
+  bodyB: string;
+  side: string;
+  metalA: string;
+  metalB: string;
+  lidA: string;
+  lidB: string;
+  gem: string;
+  gem2: string;
+};
+
+const CHEST_PAINT: Record<ChestLook, ChestPaint> = {
+  common: {
+    bodyA: "#d7a15a",
+    bodyB: "#6d4124",
+    side: "#4a2c16",
+    metalA: "#f2f3f5",
+    metalB: "#7e868f",
+    lidA: "#f0c27a",
+    lidB: "#a56a34",
+    gem: "#d5dbe3",
+    gem2: "#b7c0ca",
+  },
+  rare: {
+    bodyA: "#4c8fe0",
+    bodyB: "#1a3f86",
+    side: "#102a58",
+    metalA: "#f7fbff",
+    metalB: "#a9b6c6",
+    lidA: "#9ec8f8",
+    lidB: "#2a62b4",
+    gem: "#e7f2ff",
+    gem2: "#9ec4ff",
+  },
+  epic: {
+    bodyA: "#8b5cf6",
+    bodyB: "#43158a",
+    side: "#2a0d58",
+    metalA: "#f6edff",
+    metalB: "#c4b0e0",
+    lidA: "#c4a6ff",
+    lidB: "#6d3cc4",
+    gem: "#f0e4ff",
+    gem2: "#d7b8ff",
+  },
+  gold: {
+    bodyA: "#ffd56a",
+    bodyB: "#c48412",
+    side: "#8a5608",
+    metalA: "#fff8dc",
+    metalB: "#e2b84a",
+    lidA: "#ffe7a3",
+    lidB: "#e0a820",
+    gem: "#ff4d6d",
+    gem2: "#7ee7ff",
+  },
+};
 
 type LeafChestStripProps = {
   selectedDate: string;
@@ -16,14 +84,34 @@ type LeafChestStripProps = {
   /** Screenshot stand only. The ration page never passes this. */
   fixture?: LeafPublic;
   initialSheet?: boolean;
+  previewReward?: OpenedReward | null;
+  previewRevealed?: boolean;
+  /** Screenshot stand: force the full open or the reduced one. */
+  previewMotion?: "auto" | "full" | "reduce";
+  /** Screenshot stand: frozen beat or an automatic tap script. */
+  previewPhase?: "ask" | "burst" | "card" | "play";
 };
 
 type OpenedReward = {
+  key?: string;
   title: string;
   description: string;
   rarityLabel: string;
-  look: LeafRarity;
+  look: ChestLook;
+  leaves?: boolean;
 };
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function rarityHeading(look: ChestLook, fallback: string): string {
+  if (look === "gold") return "Легендарный";
+  if (look === "epic") return "Эпический";
+  if (look === "rare") return "Редкий";
+  if (look === "common") return "Обычный";
+  return fallback;
+}
 
 function LeafMark({ filled }: { filled: boolean }) {
   return (
@@ -53,26 +141,66 @@ function LeafMark({ filled }: { filled: boolean }) {
   );
 }
 
-function ChestArt({ look }: { look: LeafRarity }) {
+export function ChestArt({ look }: { look: ChestLook }) {
+  const paint = CHEST_PAINT[look];
+  const id = `cv-${look}`;
   return (
-    <svg className={`leaf-chest-svg leaf-chest-svg--${look}`} viewBox="0 0 72 64" aria-hidden="true">
-      <ellipse className="leaf-chest-shadow" cx="34" cy="60" rx="22" ry="3.2" />
-      <path className="leaf-chest-side" d="M50 26.2 63 21.6V49.2L50 54Z" />
+    <svg className={`leaf-chest-svg leaf-chest-svg--${look}`} viewBox="0 0 120 108" aria-hidden="true">
+      <defs>
+        <linearGradient id={`${id}-body`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={paint.bodyA} />
+          <stop offset="1" stopColor={paint.bodyB} />
+        </linearGradient>
+        <linearGradient id={`${id}-lid`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={paint.lidA} />
+          <stop offset="1" stopColor={paint.lidB} />
+        </linearGradient>
+        <linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={paint.metalA} />
+          <stop offset="0.45" stopColor={paint.metalB} />
+          <stop offset="1" stopColor={paint.metalA} />
+        </linearGradient>
+        <linearGradient id={`${id}-side`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={paint.bodyB} />
+          <stop offset="1" stopColor={paint.side} />
+        </linearGradient>
+      </defs>
+      <ellipse cx="54" cy="100" rx="36" ry="5" fill="#000" opacity="0.35" />
+      <path d="M78 40 104 32v40L78 82Z" fill={`url(#${id}-side)`} />
+      <path d="M78 40 104 32 98 24 72 31Z" fill={paint.bodyA} opacity="0.85" />
       <g className="leaf-chest-lid">
-        <path className="leaf-chest-lid-top" d="M8 26.2 46 20.2 58 16.4 16 21.6Z" />
-        <path className="leaf-chest-lid-front" d="M8 26.2h42v7.4c0 1.2-1 2.2-2.2 2.2H10.2A2.2 2.2 0 0 1 8 33.6Z" />
-        <path className="leaf-chest-band" d="M20 25.4 22.4 24.6V35.6L20 35.8Z" />
-        <path className="leaf-chest-band" d="M38 23.6 40.4 22.8V35.6L38 35.8Z" />
-        <path className="leaf-chest-gem" d="M29.5 14.6 34.2 18.4 29.5 22.2 24.8 18.4Z" />
+        <path d="M14 40 72 31 98 24 28 32Z" fill={paint.lidA} />
+        <path d="M14 40h64v12c0 2-1.6 3.4-3.4 3.4H17.4A3.4 3.4 0 0 1 14 52Z" fill={`url(#${id}-lid)`} stroke="#1a120c" strokeWidth="1.2" />
+        <path d="M30 38h5v17h-5Z" fill={`url(#${id}-metal)`} />
+        <path d="M62 36h5v19h-5Z" fill={`url(#${id}-metal)`} />
+        <path d="M46 20 54 26.5 46 33 38 26.5Z" fill={paint.gem} stroke="#1a120c" strokeWidth="0.6" />
+        {look === "gold" ? (
+          <>
+            <circle cx="34" cy="27" r="2.2" fill={paint.gem2} />
+            <circle cx="58" cy="25" r="2.2" fill="#fff" />
+          </>
+        ) : null}
+        <circle cx="22" cy="46" r="1.7" fill={paint.metalA} />
+        <circle cx="70" cy="46" r="1.7" fill={paint.metalA} />
       </g>
-      <path className="leaf-chest-body" d="M8 33.2h42V52c0 2.2-1.8 4-4 4H12c-2.2 0-4-1.8-4-4Z" />
-      <path className="leaf-chest-band" d="M20 33.2h3.4V56H20Z" />
-      <path className="leaf-chest-band" d="M38 33.2h3.4V56H38Z" />
-      <rect className="leaf-chest-lock" x="24.2" y="38" width="12" height="13.5" rx="2.2" />
-      <circle className="leaf-chest-keyhole" cx="30.2" cy="43.2" r="1.7" />
-      <path className="leaf-chest-keyhole" d="M30.2 44.8v3.1" />
+      <path d="M14 52h64v28c0 3.2-2.6 5.6-5.6 5.6H19.6A5.6 5.6 0 0 1 14 80Z" fill={`url(#${id}-body)`} stroke="#1a120c" strokeWidth="1.4" />
+      <path d="M20 66h52" stroke="rgba(255,255,255,0.28)" strokeWidth="1.4" />
+      <path d="M30 52h5.2v33.6H30Z" fill={`url(#${id}-metal)`} />
+      <path d="M62 52h5.2v33.6H62Z" fill={`url(#${id}-metal)`} />
+      <rect x="40" y="60" width="16" height="18" rx="3" fill={paint.side} stroke={paint.metalA} strokeWidth="1" />
+      <circle cx="48" cy="67" r="2" fill="none" stroke={paint.metalA} strokeWidth="1.3" />
+      <path d="M48 69v3.2" stroke={paint.metalA} strokeWidth="1.3" strokeLinecap="round" />
+      <circle cx="22" cy="58" r="1.8" fill={paint.metalA} />
+      <circle cx="70" cy="58" r="1.8" fill={paint.metalA} />
+      <circle cx="22" cy="80" r="1.8" fill={paint.metalA} />
+      <circle cx="70" cy="80" r="1.8" fill={paint.metalA} />
+      <path className="leaf-seam" d="M18 52h56" />
     </svg>
   );
+}
+
+function ChestFrame({ look, children }: { look: ChestLook; children: ReactNode }) {
+  return <span className={`leaf-chest-frame leaf-chest-frame--${look}`}>{children}</span>;
 }
 
 function LeafMeter({ slots, large = false }: { slots: LeafPublic["slots"]; large?: boolean }) {
@@ -93,16 +221,23 @@ export function LeafChestStrip({
   refreshKey,
   fixture,
   initialSheet = false,
+  previewReward = null,
+  previewRevealed = false,
+  previewMotion = "auto",
+  previewPhase = "ask",
 }: LeafChestStripProps) {
   const [view, setView] = useState<LeafPublic | null>(fixture ?? null);
   const [sheet, setSheet] = useState(initialSheet);
   const [legacyReady, setLegacyReady] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reward, setReward] = useState<OpenedReward | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [beat, setBeat] = useState(0);
-  const [showCeremony, setShowCeremony] = useState(false);
+  const [reward, setReward] = useState<OpenedReward | null>(previewReward);
+  const [revealed, setRevealed] = useState(previewRevealed);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [showCeremony, setShowCeremony] = useState(Boolean(previewReward));
+  const [taps, setTaps] = useState(0);
+  const [tapLock, setTapLock] = useState(false);
+  const timers = useRef<number[]>([]);
   const [mounted, setMounted] = useState(false);
 
   const reload = useCallback(async () => {
@@ -146,37 +281,76 @@ export function LeafChestStrip({
   }, []);
 
   useEffect(() => {
-    if (!showCeremony || revealed) return;
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const muted = isSoftCelebrationsMutedToday(toDateKey(new Date()));
-    if (reduce || muted) {
-      setRevealed(true);
-      return;
+    if (!previewReward) return;
+    const reduced = previewMotion === "full" ? false : previewMotion === "reduce" ? true : prefersReducedMotion();
+    setReward(previewReward);
+    setRevealed(previewRevealed);
+    setReduceMotion(reduced);
+    setShowCeremony(true);
+    setSheet(false);
+    if (previewPhase === "burst") setTaps(3);
+    else if (previewRevealed || previewPhase === "card") setTaps(3);
+    else setTaps(0);
+    if (previewPhase === "play" && !reduced && !previewRevealed) {
+      const script = [
+        window.setTimeout(() => setTaps(1), 700),
+        window.setTimeout(() => setTaps(2), 1700),
+        window.setTimeout(() => setTaps(3), 2700),
+        window.setTimeout(() => setRevealed(true), 4800),
+      ];
+      return () => script.forEach((id) => window.clearTimeout(id));
     }
-    const timer = window.setTimeout(() => {
-      setBeat((value) => {
-        if (value >= 3) {
-          setRevealed(true);
-          return value;
-        }
-        return value + 1;
-      });
-    }, 700);
-    return () => window.clearTimeout(timer);
-  }, [showCeremony, revealed, beat]);
+    if (reduced && !previewRevealed && previewPhase !== "burst") {
+      const timer = window.setTimeout(() => setRevealed(true), OPEN_REDUCED_MS);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [previewReward, previewRevealed, previewMotion, previewPhase]);
+
+  useEffect(
+    () => () => {
+      timers.current.forEach((id) => window.clearTimeout(id));
+      stopChestAudio();
+    },
+    [],
+  );
 
   const beginCeremony = (next: OpenedReward) => {
+    const reduced = prefersReducedMotion();
+    setReduceMotion(reduced);
     setSheet(false);
-    setBeat(0);
     setRevealed(false);
+    setTaps(0);
+    setTapLock(false);
     setReward(next);
     setShowCeremony(true);
+    if (reduced) {
+      const id = window.setTimeout(() => setRevealed(true), OPEN_REDUCED_MS);
+      timers.current.push(id);
+    }
+  };
+
+  const onChestTap = () => {
+    if (reduceMotion || revealed || tapLock || taps >= 3) return;
+    const next = taps + 1;
+    setTaps(next);
+    setTapLock(true);
+    const unlock = window.setTimeout(() => setTapLock(false), TAP_LOCK_MS);
+    timers.current.push(unlock);
+    if (next === 1) playChestCue("tap");
+    else if (next === 2) playChestCue("rise");
+    else {
+      playChestCue("open");
+      const done = window.setTimeout(() => {
+        setRevealed(true);
+        playChestCue("reward");
+      }, OPEN_BURST_MS);
+      timers.current.push(done);
+    }
   };
 
   const revealNow = () => {
-    setBeat(3);
+    setTaps(3);
     setRevealed(true);
   };
 
@@ -194,9 +368,10 @@ export function LeafChestStrip({
         error?: string;
         opened?: boolean;
         view?: LeafPublic;
-        reward?: { title: string; description: string } | null;
+        reward?: { key?: string; title: string; description: string } | null;
         rarity?: LeafRarity | null;
         rarityLabel?: string | null;
+        dust?: { setTitle: string; amount: number } | null;
       };
       if (!resp.ok || !data.opened || !data.reward) {
         setError(data.error ?? "Сундук пока не открывается");
@@ -205,10 +380,14 @@ export function LeafChestStrip({
       }
       if (data.view) setView(data.view);
       beginCeremony({
-        title: data.reward.title,
-        description: data.reward.description,
+        title: data.dust ? `+${leavesCount(data.dust.amount)}` : data.reward.title,
+        description: data.dust
+          ? `Уже есть. Листики набора «${data.dust.setTitle}».`
+          : data.reward.description,
         rarityLabel: data.rarityLabel ?? "Обычный",
+        key: data.reward.key,
         look: data.rarity ?? "common",
+        leaves: Boolean(data.dust),
       });
     } catch {
       setError("Нет связи. Попробуй ещё раз.");
@@ -279,7 +458,9 @@ export function LeafChestStrip({
       <div className="leaf-sheet" role="dialog" aria-labelledby="leaf-sheet-title">
         <div className="leaf-sheet-grab" />
         <div className="leaf-sheet-hero">
-          <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+          <ChestFrame look={view.ready && view.rarity ? view.rarity : view.chestLook}>
+            <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+          </ChestFrame>
           <div>
             <h2 id="leaf-sheet-title" className="leaf-sheet-title">
               {view.ready ? "Сундук твой" : "Сундук"}
@@ -311,35 +492,70 @@ export function LeafChestStrip({
           </button>
         ) : null}
         <p className="leaf-sheet-fine">{view.finePrint}</p>
+        <p className="leaf-sheet-fine">{CHEST_ODDS_LINE}</p>
       </div>
     </div>
   ) : null;
 
+  const closeCeremony = () => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current = [];
+    stopChestAudio();
+    setShowCeremony(false);
+    setReward(null);
+    setRevealed(false);
+    setTaps(0);
+    void reload();
+  };
+
   const ceremonyNode = showCeremony && reward ? (
-    <div className="leaf-open" role="dialog" aria-label="Открытие сундука">
+    <div
+      className={`leaf-open leaf-open--${reward.look}${revealed ? " leaf-open--done" : " leaf-open--play"} leaf-open--t${taps}${reduceMotion ? " leaf-open--reduce" : ""}`}
+      role="dialog"
+      aria-label="Открытие сундука"
+    >
       {revealed ? (
-        <div className="leaf-open-card">
-          <p className="leaf-open-rarity">{reward.rarityLabel}</p>
+        <div className={`leaf-open-card leaf-open-card--${reward.look}`}>
+          {reduceMotion ? null : (
+            <span className="leaf-confetti" aria-hidden="true">
+              {Array.from({ length: 18 }, (_, index) => (
+                <i key={index} />
+              ))}
+            </span>
+          )}
+          <p className="leaf-open-rarity">{rarityHeading(reward.look, reward.rarityLabel)}</p>
+          <p className="leaf-open-glyph" aria-hidden="true">
+            {reward.leaves ? (
+              <span className={reduceMotion ? "collection-leaf-still" : "collection-leaf-gain"}>
+                <CurrencyLeaf />
+              </span>
+            ) : (
+              lootGlyph(reward.key)
+            )}
+          </p>
           <h2>{reward.title}</h2>
           <p>{reward.description}</p>
-          <button
-            type="button"
-            className="leaf-sheet-open"
-            onClick={() => {
-              setShowCeremony(false);
-              setReward(null);
-              setRevealed(false);
-              void reload();
-            }}
-          >
-            Хорошо
+          <button type="button" className="leaf-sheet-open leaf-claim" onClick={closeCeremony}>
+            Забрать
           </button>
         </div>
       ) : (
         <>
-          <div className={`leaf-stage leaf-stage--${reward.look} leaf-stage--beat-${beat}`}>
-            <ChestArt look={reward.look} />
-          </div>
+          <span className="leaf-rays" aria-hidden="true" />
+          <span className="leaf-flash" aria-hidden="true" />
+          {taps >= 3 && !reduceMotion ? (
+            <span className="leaf-burst" aria-hidden="true">
+              {Array.from({ length: 16 }, (_, index) => (
+                <i key={index} className={index % 3 === 0 ? "is-coin" : "is-spark"} />
+              ))}
+            </span>
+          ) : null}
+          <button type="button" className="leaf-stage" onClick={onChestTap}>
+            <span className="leaf-chest-bob">
+              <ChestArt look={reward.look} />
+            </span>
+          </button>
+          <p className="leaf-tap-hint">{taps >= 3 ? "Открывается…" : "Тапни, чтобы открыть"}</p>
           <button type="button" className="leaf-open-skip" onClick={revealNow}>
             Хватит, покажи подарок
           </button>
@@ -360,7 +576,9 @@ export function LeafChestStrip({
           setSheet(true);
         }}
       >
-        <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+        <ChestFrame look={view.ready && view.rarity ? view.rarity : view.chestLook}>
+          <ChestArt look={view.ready && view.rarity ? view.rarity : view.chestLook} />
+        </ChestFrame>
         <span className="leaf-strip-copy">
           <span className="leaf-strip-head">
             <span className="leaf-strip-title">Сундук</span>

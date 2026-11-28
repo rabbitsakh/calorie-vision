@@ -6,7 +6,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { MomentHeroView } from "@/components/MomentHeroCard";
-import { LeafChestStrip } from "@/components/LeafChestStrip";
+import { ChestArt, LeafChestStrip } from "@/components/LeafChestStrip";
 import { LEAF_FINE_PRINT, type LeafPublic } from "@/lib/leaf-chest";
 import { NavIcon } from "@/components/NavIcons";
 import { buildMomentHero } from "@/lib/moment-hero";
@@ -79,6 +79,38 @@ function chestPreview(kind: string | null): LeafPublic {
     slots: [on, on, { state: "wait", label: "" }],
   };
 }
+
+const COMMON_REWARD = {
+  key: "sticker_sprout",
+  title: "Росток",
+  description: "Тихое начало дня",
+  rarityLabel: "Обычный",
+  look: "common" as const,
+};
+
+const LEAVES_REWARD = {
+  key: "fruit_apple",
+  title: "+1 листик",
+  description: "Уже есть. Листики набора «Фрукты».",
+  rarityLabel: "Обычный",
+  look: "common" as const,
+  leaves: true,
+};
+
+const LEGEND_REWARD = {
+  key: "cheer_festive",
+  title: "Праздничный настрой",
+  description: "Сегодня можно улыбнуться шире",
+  rarityLabel: "Легендарный",
+  look: "gold" as const,
+};
+
+const RARITY_GALLERY = [
+  { look: "common" as const, label: "Обычный" },
+  { look: "rare" as const, label: "Редкий" },
+  { look: "epic" as const, label: "Эпический" },
+  { look: "gold" as const, label: "Легендарный" },
+];
 
 const ICON = {
   width: 20,
@@ -191,7 +223,17 @@ export function TodayHeroPreview() {
               ideasEmpty={ideasEmpty}
             />
           ) : null}
-          {params.get("chest") ? (
+          {params.get("chest") === "gallery" ? (
+            <section className="leaf-gallery" aria-label="Редкости сундука">
+              {RARITY_GALLERY.map((item) => (
+                <article key={item.look} className={`leaf-gallery-card leaf-chest-frame--${item.look}`}>
+                  <ChestArt look={item.look} />
+                  <b>{item.label}</b>
+                </article>
+              ))}
+            </section>
+          ) : null}
+          {params.get("chest") && params.get("chest") !== "gallery" ? (
             <>
               <LeafChestStrip
                 selectedDate={FIXTURE_DATE}
@@ -199,6 +241,36 @@ export function TodayHeroPreview() {
                 refreshKey={0}
                 fixture={chestPreview(params.get("chest"))}
                 initialSheet={params.get("chest") === "sheet"}
+                previewReward={
+                  params.get("chest") === "legend"
+                    ? LEGEND_REWARD
+                    : params.get("chest") === "leaves"
+                      ? LEAVES_REWARD
+                    : params.get("chest") === "reward"
+                      ? COMMON_REWARD
+                      : params.get("chest") === "play" ||
+                          params.get("chest") === "tap" ||
+                          params.get("chest") === "burst"
+                        ? COMMON_REWARD
+                        : null
+                }
+                previewRevealed={params.get("chest") === "reward" || params.get("chest") === "legend" || params.get("chest") === "leaves"}
+                previewMotion={
+                  params.get("chest") === "play" ||
+                  params.get("chest") === "tap" ||
+                  params.get("chest") === "burst"
+                    ? "full"
+                    : "auto"
+                }
+                previewPhase={
+                  params.get("chest") === "play"
+                    ? "play"
+                    : params.get("chest") === "burst"
+                      ? "burst"
+                      : params.get("chest") === "reward" || params.get("chest") === "legend"
+                        ? "card"
+                        : "ask"
+                }
               />
               <div className="ration-day-feed ration-meal-feed">
                 <article className="meal-card">
