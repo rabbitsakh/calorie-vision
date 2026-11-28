@@ -88,6 +88,15 @@ const COMMON_REWARD = {
   look: "common" as const,
 };
 
+const LEAVES_REWARD = {
+  key: "fruit_apple",
+  title: "+1 листик",
+  description: "Уже есть. Листики набора «Фрукты».",
+  rarityLabel: "Обычный",
+  look: "common" as const,
+  leaves: true,
+};
+
 const LEGEND_REWARD = {
   key: "cheer_festive",
   title: "Праздничный настрой",
@@ -235,6 +244,8 @@ export function TodayHeroPreview() {
                 previewReward={
                   params.get("chest") === "legend"
                     ? LEGEND_REWARD
+                    : params.get("chest") === "leaves"
+                      ? LEAVES_REWARD
                     : params.get("chest") === "reward"
                       ? COMMON_REWARD
                       : params.get("chest") === "play" ||
@@ -243,7 +254,7 @@ export function TodayHeroPreview() {
                         ? COMMON_REWARD
                         : null
                 }
-                previewRevealed={params.get("chest") === "reward" || params.get("chest") === "legend"}
+                previewRevealed={params.get("chest") === "reward" || params.get("chest") === "legend" || params.get("chest") === "leaves"}
                 previewMotion={
                   params.get("chest") === "play" ||
                   params.get("chest") === "tap" ||

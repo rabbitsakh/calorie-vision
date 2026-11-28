@@ -6,6 +6,7 @@ import { openChest } from "@/lib/chest-client";
 import { playChestCue, stopChestAudio } from "@/lib/chest-sfx";
 import { CHEST_ODDS_LINE, type LeafPublic, type LeafRarity } from "@/lib/leaf-chest";
 import { lootGlyph } from "@/lib/rewards";
+import { CurrencyLeaf } from "@/components/CurrencyLeaf";
 import { leavesCount } from "@/lib/russian-text";
 import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
@@ -97,6 +98,7 @@ type OpenedReward = {
   description: string;
   rarityLabel: string;
   look: ChestLook;
+  leaves?: boolean;
 };
 
 function prefersReducedMotion(): boolean {
@@ -385,6 +387,7 @@ export function LeafChestStrip({
         rarityLabel: data.rarityLabel ?? "Обычный",
         key: data.reward.key,
         look: data.rarity ?? "common",
+        leaves: Boolean(data.dust),
       });
     } catch {
       setError("Нет связи. Попробуй ещё раз.");
@@ -522,7 +525,13 @@ export function LeafChestStrip({
           )}
           <p className="leaf-open-rarity">{rarityHeading(reward.look, reward.rarityLabel)}</p>
           <p className="leaf-open-glyph" aria-hidden="true">
-            {lootGlyph(reward.key)}
+            {reward.leaves ? (
+              <span className={reduceMotion ? "collection-leaf-still" : "collection-leaf-gain"}>
+                <CurrencyLeaf />
+              </span>
+            ) : (
+              lootGlyph(reward.key)
+            )}
           </p>
           <h2>{reward.title}</h2>
           <p>{reward.description}</p>

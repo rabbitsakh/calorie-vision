@@ -12847,7 +12847,8 @@ html:has(.onboarding-screen) .bottom-composer {
   .leaf-strip .leaf-chest-svg,
   .leaf-open--done .leaf-open-card,
   .leaf-open-card::after,
-  .leaf-claim { animation: none; }
+  .leaf-claim,
+  .collection-leaf-gain { animation: none; }
   .leaf-strip--ready {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-streak) 55%, transparent), var(--shadow-card);
   }
@@ -12882,7 +12883,32 @@ html:has(.onboarding-screen) .bottom-composer {
 .collection-set i { display: block; height: 6px; border-radius: 99px; background: var(--accent); }
 .collection-set small { color: var(--muted); }
 .collection-leaves { display: inline-flex; align-items: center; gap: 4px; }
-.collection-mini-leaf { width: 14px; height: 14px; color: var(--accent); }
+.collection-mini-leaf { width: 20px; height: 20px; display: block; overflow: visible; }
+.collection-leaf-still,
+.collection-leaf-gain { display: inline-flex; width: 76px; height: 76px; }
+.collection-leaf-still .collection-mini-leaf,
+.collection-leaf-gain .collection-mini-leaf { width: 76px; height: 76px; }
+.collection-leaf-gain { animation: collection-leaf-hop 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) both; }
+.collection-leaf-peak { display: inline-flex; transform: translateY(-10px) rotate(14deg) scale(1.04); }
+.leaf-variants { min-height: 100vh; padding: 16px 12px 24px; }
+.leaf-variants h1 { margin: 0 0 12px; font-size: 1.15rem; }
+.leaf-variants-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.leaf-variant-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 6px 12px; border-radius: 16px; background: var(--card); color: var(--foreground);
+}
+.leaf-variant-card small { color: var(--muted); font-size: 0.7rem; }
+.leaf-variant-big { width: 104px; height: 104px; }
+.leaf-variant-real { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--foreground); }
+.leaf-variant-16 .collection-mini-leaf { width: 16px; height: 16px; }
+.leaf-variant-gain { margin-top: 10px; }
+.leaf-variant-gain .collection-mini-leaf { width: 76px; height: 76px; }
+@keyframes collection-leaf-hop {
+  0% { transform: translateY(16px) scale(0.35) rotate(-22deg); }
+  42% { transform: translateY(-14px) scale(1.08) rotate(16deg); }
+  68% { transform: translateY(3px) scale(0.94) rotate(-8deg); }
+  100% { transform: translateY(0) scale(1) rotate(0); }
+}
 .collection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .collection-cell {
   display: flex; min-height: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
