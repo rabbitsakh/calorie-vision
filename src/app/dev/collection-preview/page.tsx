@@ -79,7 +79,7 @@ function Preview() {
       {mode === "cycle" && step < 2 ? (
         <p className="collection-prize">{step === 0 ? "Сундук открыт" : "Новый предмет"}</p>
       ) : null}
-      {mode === "cycle" && step >= 2 ? <p className="collection-prize">Повторка стала пылью: +1 к «Фрукты»</p> : null}
+      {mode === "cycle" && step >= 2 ? <p className="collection-prize">Повторка: +1 листик набора «Фрукты»</p> : null}
       <CollectionBoard model={model(view)} />
     </div>
   );

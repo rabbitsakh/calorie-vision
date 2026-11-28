@@ -6,6 +6,7 @@ import { openChest } from "@/lib/chest-client";
 import { playChestCue, stopChestAudio } from "@/lib/chest-sfx";
 import { CHEST_ODDS_LINE, type LeafPublic, type LeafRarity } from "@/lib/leaf-chest";
 import { lootGlyph } from "@/lib/rewards";
+import { leavesCount } from "@/lib/russian-text";
 import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
 
@@ -377,9 +378,9 @@ export function LeafChestStrip({
       }
       if (data.view) setView(data.view);
       beginCeremony({
-        title: data.dust ? `+${data.dust.amount} пыли` : data.reward.title,
+        title: data.dust ? `+${leavesCount(data.dust.amount)}` : data.reward.title,
         description: data.dust
-          ? `Уже есть. Пыль набора «${data.dust.setTitle}».`
+          ? `Уже есть. Листики набора «${data.dust.setTitle}».`
           : data.reward.description,
         rarityLabel: data.rarityLabel ?? "Обычный",
         key: data.reward.key,

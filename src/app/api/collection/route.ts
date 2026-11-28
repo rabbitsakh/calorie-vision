@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       if (!result.ok) {
         const text =
           result.reason === "dust"
-            ? "Нужно 10 пыли этого набора"
+            ? "Нужно 10 листиков этого набора"
             : result.reason === "owned"
               ? "Эта ячейка уже собрана"
               : "Эту ячейку нельзя выбрать";

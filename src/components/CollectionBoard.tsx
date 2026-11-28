@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { leavesCount } from "@/lib/russian-text";
 import { withBasePath } from "@/lib/paths";
 
 export type CollectionCell = {
@@ -71,7 +72,10 @@ export function CollectionBoard({
               {set.filled} из {set.total}
             </span>
             <i style={{ width: `${Math.round((set.filled / set.total) * 100)}%` }} />
-            <small>{set.dust} пыли</small>
+            <small className="collection-leaves" title={`Листики набора «${set.title}»`}>
+              <MiniLeaf />
+              {leavesCount(set.dust)}
+            </small>
           </button>
         ))}
       </div>
@@ -99,8 +103,8 @@ export function CollectionBoard({
           onClick={() => onExchange?.(current.key, empty[0]!.key)}
         >
           {current.dust >= model.dustCost
-            ? `Открыть пустую ячейку за ${model.dustCost} пыли`
-            : `Нужно ${model.dustCost} пыли этого набора`}
+            ? `Открыть пустую ячейку за ${leavesCount(model.dustCost)}`
+            : `Нужно ${leavesCount(model.dustCost)} набора «${current.title}»`}
         </button>
       ) : null}
       <section className="collection-season">
@@ -131,6 +135,19 @@ export function CollectionBoard({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function MiniLeaf() {
+  return (
+    <svg className="collection-mini-leaf" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M13.2 2.2 18.2 7.6 19.4 13.8 14.6 18.2 11.4 17.2 7.2 12.8 8.4 6.2Z"
+        fill="currentColor"
+      />
+      <path d="M12.2 17.4 9.2 22.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M12.4 16.2 14.2 4.2" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
   );
 }
 

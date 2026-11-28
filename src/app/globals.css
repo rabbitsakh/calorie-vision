@@ -12881,6 +12881,8 @@ html:has(.onboarding-screen) .bottom-composer {
 .collection-set.is-on { border-color: var(--accent); }
 .collection-set i { display: block; height: 6px; border-radius: 99px; background: var(--accent); }
 .collection-set small { color: var(--muted); }
+.collection-leaves { display: inline-flex; align-items: center; gap: 4px; }
+.collection-mini-leaf { width: 14px; height: 14px; color: var(--accent); }
 .collection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .collection-cell {
   display: flex; min-height: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
