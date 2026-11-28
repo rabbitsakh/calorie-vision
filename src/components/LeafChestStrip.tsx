@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import { openChest } from "@/lib/chest-client";
 import { playChestCue, stopChestAudio } from "@/lib/chest-sfx";
-import type { LeafPublic, LeafRarity } from "@/lib/leaf-chest";
+import { CHEST_ODDS_LINE, type LeafPublic, type LeafRarity } from "@/lib/leaf-chest";
 import { lootGlyph } from "@/lib/rewards";
 import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
@@ -368,6 +368,7 @@ export function LeafChestStrip({
         reward?: { key?: string; title: string; description: string } | null;
         rarity?: LeafRarity | null;
         rarityLabel?: string | null;
+        dust?: { setTitle: string; amount: number } | null;
       };
       if (!resp.ok || !data.opened || !data.reward) {
         setError(data.error ?? "Сундук пока не открывается");
@@ -376,8 +377,10 @@ export function LeafChestStrip({
       }
       if (data.view) setView(data.view);
       beginCeremony({
-        title: data.reward.title,
-        description: data.reward.description,
+        title: data.dust ? `+${data.dust.amount} пыли` : data.reward.title,
+        description: data.dust
+          ? `Уже есть. Пыль набора «${data.dust.setTitle}».`
+          : data.reward.description,
         rarityLabel: data.rarityLabel ?? "Обычный",
         key: data.reward.key,
         look: data.rarity ?? "common",
@@ -485,6 +488,7 @@ export function LeafChestStrip({
           </button>
         ) : null}
         <p className="leaf-sheet-fine">{view.finePrint}</p>
+        <p className="leaf-sheet-fine">{CHEST_ODDS_LINE}</p>
       </div>
     </div>
   ) : null;

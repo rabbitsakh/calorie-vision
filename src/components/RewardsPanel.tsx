@@ -69,6 +69,8 @@ const RARITY_TONE: Record<RewardRarity, string> = {
   common: "border-[var(--border-hairline)] bg-[var(--surface-mist)] text-[var(--muted-strong)]",
   rare: "border-[var(--accent)]/25 bg-[var(--accent-soft)] text-[var(--accent-ink)]",
   festive: "border-amber-200 bg-amber-50 text-amber-950",
+  epic: "border-[var(--accent)]/25 bg-[var(--accent-soft)] text-[var(--accent-ink)]",
+  legendary: "border-amber-200 bg-amber-50 text-amber-950",
 };
 
 const FILTERS: { id: FilterId; label: string }[] = [

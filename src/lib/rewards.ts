@@ -2,7 +2,9 @@
  * Chest loot catalog — soft cosmetics, no gems / leagues.
  */
 
-export type RewardRarity = "common" | "rare" | "festive";
+import { COLLECTION_ITEMS } from "@/lib/collection-sets";
+
+export type RewardRarity = "common" | "rare" | "festive" | "epic" | "legendary";
 export type RewardGroup = "sticker" | "cheer" | "frame";
 export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta" | "referral" | "leaf";
 
@@ -25,6 +27,8 @@ export type RewardDef = {
   group: RewardGroup;
   /** Only granted from collection meta chests (wave 9). */
   metaOnly?: boolean;
+  /** Collection album. Not in the old random chest pool. */
+  collectionOnly?: boolean;
 };
 
 /** Soft pity: after this many grants without rare+, force rare/festive. */
@@ -46,6 +50,8 @@ export const RARITY_LABELS: Record<RewardRarity, string> = {
   common: "Обычная",
   rare: "Редкая",
   festive: "Праздничная",
+  epic: "Эпическая",
+  legendary: "Легендарная",
 };
 
 /** CSS ring classes for equipped avatar frames (wave 8). */
@@ -219,6 +225,14 @@ export const REWARD_DEFS: RewardDef[] = [
     group: "frame",
     metaOnly: true,
   },
+  ...COLLECTION_ITEMS.map((entry) => ({
+    key: entry.key,
+    title: entry.title,
+    description: entry.description,
+    rarity: entry.rarity,
+    group: entry.group,
+    collectionOnly: true,
+  })),
 ];
 
 const BY_KEY = new Map(REWARD_DEFS.map((r) => [r.key, r]));
@@ -229,11 +243,11 @@ export function rewardDef(key: string): RewardDef | undefined {
 
 /** Regular chest pool — excludes meta-only cosmetics. */
 export function chestPoolDefs(): RewardDef[] {
-  return REWARD_DEFS.filter((r) => !r.metaOnly);
+  return REWARD_DEFS.filter((r) => !r.metaOnly && !r.collectionOnly);
 }
 
 export function metaPoolDefs(): RewardDef[] {
-  return REWARD_DEFS.filter((r) => r.metaOnly);
+  return REWARD_DEFS.filter((r) => r.metaOnly && !r.collectionOnly);
 }
 
 export function isFrameReward(key: string): boolean {
@@ -353,7 +367,7 @@ export type PickRewardOptions = {
 };
 
 function isRarePlus(def: RewardDef): boolean {
-  return def.rarity === "rare" || def.rarity === "festive";
+  return def.rarity === "rare" || def.rarity === "epic" || def.rarity === "legendary" || def.rarity === "festive";
 }
 
 /**

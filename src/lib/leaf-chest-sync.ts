@@ -3,6 +3,12 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import {
+  collectionItem,
+  completionReady,
+  pickCollectionDrop,
+  setTitle,
+} from "@/lib/collection-sets";
+import {
   addSpark,
   chestSalt,
   cosmeticForChest,
@@ -12,7 +18,6 @@ import {
   leafView,
   mealCountsAsPlate,
   oldestUnopened,
-  pickCosmeticForChest,
   sealReadyChests,
   sessionEffortOk,
   shiftDateKeyUtc,
@@ -40,7 +45,7 @@ function isUnique(error: unknown): boolean {
 }
 
 function asRarity(value: string): LeafRarity {
-  if (value === "rare" || value === "gold") return value;
+  if (value === "rare" || value === "epic" || value === "gold") return value;
   return "common";
 }
 
@@ -237,13 +242,23 @@ export type OpenedLeaf = {
   reward: { key: string; title: string; description: string } | null;
   rarity: LeafRarity | null;
   rarityLabel: string | null;
+  dust: { setKey: string; setTitle: string; amount: number; total: number } | null;
+  setCompleted: { setKey: string; setTitle: string; rewardTitle: string } | null;
 };
 
 export async function openLeafChest(userId: string): Promise<OpenedLeaf> {
   const synced = await syncLeafWorld(userId);
   const pending = oldestUnopened(synced.world);
   if (!pending) {
-    return { opened: false, view: synced.view, reward: null, rarity: null, rarityLabel: null };
+    return {
+      opened: false,
+      view: synced.view,
+      reward: null,
+      rarity: null,
+      rarityLabel: null,
+      dust: null,
+      setCompleted: null,
+    };
   }
 
   const sourceKey = leafRewardSourceKey(pending.seq);
@@ -251,26 +266,65 @@ export async function openLeafChest(userId: string): Promise<OpenedLeaf> {
     where: { userId_sourceKey: { userId, sourceKey } },
   });
   let rewardKey = pending.rewardKey ?? existing?.rewardKey ?? null;
-  if (!rewardKey) {
-    const owned = await prisma.userReward.findMany({
+  let dust: OpenedLeaf["dust"] = null;
+  let setCompleted: OpenedLeaf["setCompleted"] = null;
+  if (!rewardKey && !existing) {
+    const ownedRows = await prisma.userReward.findMany({
       where: { userId },
       select: { rewardKey: true },
     });
-    rewardKey = pickCosmeticForChest(
-      owned.map((row) => row.rewardKey),
-      pending.rarity,
-      chestSalt(pending.seq),
-    );
-    try {
-      await prisma.userReward.create({
-        data: { userId, rewardKey, source: "leaf", sourceKey },
+    const owned = ownedRows.map((row) => row.rewardKey);
+    const drop = pickCollectionDrop({
+      tier: pending.rarity,
+      ownedKeys: owned,
+      salt: chestSalt(pending.seq),
+      today: synced.today,
+    });
+    if (drop.kind === "item") {
+      rewardKey = drop.key;
+      try {
+        await prisma.userReward.create({
+          data: { userId, rewardKey, source: "leaf", sourceKey },
+        });
+      } catch (error) {
+        if (!isUnique(error)) throw error;
+      }
+      const prize = completionReady(drop.setKey, [...owned, rewardKey]);
+      if (prize) {
+        const prizeItem = collectionItem(prize);
+        try {
+          await prisma.userReward.create({
+            data: {
+              userId,
+              rewardKey: prize,
+              source: "leaf",
+              sourceKey: `set-complete:${drop.setKey}`,
+            },
+          });
+        } catch (error) {
+          if (!isUnique(error)) throw error;
+        }
+        if (prizeItem) {
+          setCompleted = {
+            setKey: drop.setKey,
+            setTitle: setTitle(drop.setKey),
+            rewardTitle: prizeItem.title,
+          };
+        }
+      }
+    } else {
+      const row = await prisma.userCollectionDust.upsert({
+        where: { userId_setKey: { userId, setKey: drop.setKey } },
+        create: { userId, setKey: drop.setKey, amount: drop.amount },
+        update: { amount: { increment: drop.amount } },
       });
-    } catch (error) {
-      if (!isUnique(error)) throw error;
-      const again = await prisma.userReward.findUnique({
-        where: { userId_sourceKey: { userId, sourceKey } },
-      });
-      if (again) rewardKey = again.rewardKey;
+      dust = {
+        setKey: drop.setKey,
+        setTitle: setTitle(drop.setKey),
+        amount: drop.amount,
+        total: row.amount,
+      };
+      rewardKey = drop.duplicateKey;
     }
   }
 
@@ -288,9 +342,11 @@ export async function openLeafChest(userId: string): Promise<OpenedLeaf> {
   return {
     opened: true,
     view: leafView(world, synced.today, synced.view.pendingNote),
-    reward: cosmeticForChest(rewardKey),
+    reward: rewardKey ? cosmeticForChest(rewardKey) : null,
     rarity: pending.rarity,
     rarityLabel: LEAF_RARITY_LABEL[pending.rarity],
+    dust,
+    setCompleted,
   };
 }
 

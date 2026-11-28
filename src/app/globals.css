@@ -12870,3 +12870,30 @@ html:has(.onboarding-screen) .bottom-composer {
   .leaf-meter-slot { height: 28px; border-radius: 8px; }
   .leaf-mark { width: 18px; height: 18px; }
 }
+
+.collection-board { display: flex; flex-direction: column; gap: 12px; color: var(--foreground); }
+.collection-odds { margin: 0; font-size: 0.75rem; line-height: 1.45; color: var(--muted); }
+.collection-sets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.collection-set {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px; text-align: left;
+  border-radius: 16px; border: 1px solid var(--border-quiet); background: var(--card); color: var(--foreground);
+}
+.collection-set.is-on { border-color: var(--accent); }
+.collection-set i { display: block; height: 6px; border-radius: 99px; background: var(--accent); }
+.collection-set small { color: var(--muted); }
+.collection-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.collection-cell {
+  display: flex; min-height: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  padding: 8px 4px; border-radius: 14px; border: 1px solid var(--border-quiet); background: var(--card); text-align: center;
+}
+.collection-cell b { font-size: 0.72rem; line-height: 1.2; }
+.collection-cell em { font-size: 0.65rem; font-style: normal; font-weight: 800; color: var(--accent-ink); }
+.collection-silhouette {
+  width: 36px; height: 36px; border-radius: 12px; background: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+.collection-glyph { width: 36px; height: 36px; fill: var(--accent); }
+.collection-cell--rare .collection-glyph { fill: #4c8fe0; }
+.collection-cell--epic .collection-glyph { fill: #8b5cf6; }
+.collection-cell--legendary .collection-glyph { fill: #e2b84a; }
+.collection-prize, .collection-season h2 { margin: 0; font-size: 0.95rem; }
+.collection-season p { margin: 4px 0 8px; font-size: 0.8rem; color: var(--muted); }
