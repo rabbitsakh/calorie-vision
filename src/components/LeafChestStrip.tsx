@@ -238,6 +238,7 @@ export function LeafChestStrip({
   const [taps, setTaps] = useState(0);
   const [tapLock, setTapLock] = useState(false);
   const timers = useRef<number[]>([]);
+  const chestReloadImmediate = useRef(true);
   const [mounted, setMounted] = useState(false);
 
   const reload = useCallback(async () => {
@@ -250,17 +251,10 @@ export function LeafChestStrip({
       return;
     }
     try {
-      const [chestResp, legacyResp] = await Promise.all([
-        fetch(withBasePath("/api/leaf-chest"), { cache: "no-store" }),
-        fetch(withBasePath("/api/rewards"), { cache: "no-store" }),
-      ]);
+      const chestResp = await fetch(withBasePath("/api/leaf-chest"), { cache: "no-store" });
       if (!chestResp.ok) return;
       const data = (await chestResp.json()) as LeafPublic;
       setView(data);
-      if (legacyResp.ok) {
-        const legacy = (await legacyResp.json()) as { chest?: { readyCount?: number } };
-        setLegacyReady(legacy.chest?.readyCount ?? 0);
-      }
     } catch {
       setView(null);
     }
@@ -271,8 +265,34 @@ export function LeafChestStrip({
   }, []);
 
   useEffect(() => {
-    void reload();
+    if (fixture || chestReloadImmediate.current) {
+      chestReloadImmediate.current = false;
+      void reload();
+      return;
+    }
+    const id = window.setTimeout(() => {
+      void reload();
+    }, 300);
+    return () => window.clearTimeout(id);
   }, [reload, refreshKey]);
+
+  useEffect(() => {
+    if (!sheet || fixture) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const legacyResp = await fetch(withBasePath("/api/rewards"), { cache: "no-store" });
+        if (!legacyResp.ok || cancelled) return;
+        const legacy = (await legacyResp.json()) as { chest?: { readyCount?: number } };
+        setLegacyReady(legacy.chest?.readyCount ?? 0);
+      } catch {
+        // Шторка открывается и без счётчика старых сундуков.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sheet, fixture]);
 
   useEffect(() => {
     const openSheet = () => setSheet(true);

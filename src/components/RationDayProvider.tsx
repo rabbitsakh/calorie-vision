@@ -15,6 +15,7 @@ import { buildEmptyOfflineRationDay } from "@/lib/offline-ration-day";
 import { withBasePath } from "@/lib/paths";
 import { readRationDayCache, writeRationDayCache } from "@/lib/ration-day-cache";
 import { RATION_DAY_CACHE_UPDATED_EVENT } from "@/lib/ration-day-cache-optimistic";
+import { shouldRefreshOnShow } from "@/lib/visible-refresh";
 import { WORKOUT_DAY_CHANGED_EVENT } from "@/lib/workout-day-refresh";
 import type { DayMealsResponse } from "@/types";
 
@@ -114,6 +115,7 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
   const fetchGenRef = useRef(0);
   const dateRef = useRef(date);
   dateRef.current = date;
+  const lastShowRefreshAt = useRef(0);
 
   const markReady = useCallback(() => {
     if (!readyOnce.current) {
@@ -180,6 +182,7 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
 
   useEffect(() => {
     readyOnce.current = false;
+    lastShowRefreshAt.current = Date.now();
     const cached = readRationDayCache(date);
     if (cached) {
       setData(cached);
@@ -218,10 +221,14 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
     function onWorkoutDay(event: Event) {
       const detail = (event as CustomEvent<{ date?: string }>).detail;
       if (detail?.date && detail.date !== dateRef.current) return;
+      lastShowRefreshAt.current = Date.now();
       void refresh(true);
     }
     function onVisible() {
       if (document.visibilityState === "hidden") return;
+      const now = Date.now();
+      if (!shouldRefreshOnShow(now, lastShowRefreshAt.current)) return;
+      lastShowRefreshAt.current = now;
       void refresh(true);
     }
     window.addEventListener(WORKOUT_DAY_CHANGED_EVENT, onWorkoutDay);
